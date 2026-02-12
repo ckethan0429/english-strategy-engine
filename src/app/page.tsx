@@ -1,136 +1,27 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-
-type Question = {
-  id: string;
-  label: string;
-  options: string[];
-};
-
-type TemplateConfig = {
-  productName: string;
-  heroHeadline: string;
-  heroSubheadline: string;
-  startCta: string;
-  submitCta: string;
-  resultTitle: string;
-  bonusHeadline: string;
-  unlockCta: string;
-  questions: Question[];
-};
-
-type ResultPayload = {
-  profileLabel: string;
-  summary: string;
-  actionPlan: string[];
-  suggestedTools: string[];
-  trackingMethod: string;
-};
-
-const template: TemplateConfig = {
-  productName: "Universal Lead Generator",
-  heroHeadline: "Get a Personalized Action Plan in Minutes",
-  heroSubheadline:
-    "Answer a few quick questions and receive a tailored plan based on your goals.",
-  startCta: "Start Assessment",
-  submitCta: "See My Result",
-  resultTitle: "Your Personalized Result",
-  bonusHeadline: "Unlock Bonus Guide",
-  unlockCta: "Unlock Bonus",
-  questions: [
-    {
-      id: "stage",
-      label: "Current stage",
-      options: ["Just starting", "Early traction", "Growing", "Scaling"],
-    },
-    {
-      id: "time",
-      label: "Available time per day",
-      options: ["0-15 min", "15-30 min", "30-60 min", "60+ min"],
-    },
-    {
-      id: "goal",
-      label: "Primary goal",
-      options: ["Get first results", "Increase conversion", "Improve consistency", "Save time"],
-    },
-    {
-      id: "style",
-      label: "Preferred approach",
-      options: ["Step-by-step", "Templates", "Examples", "Hands-on practice"],
-    },
-    {
-      id: "blocker",
-      label: "Biggest blocker",
-      options: ["Not enough clarity", "Low confidence", "Lack of system", "Execution gaps"],
-    },
-  ],
-};
-
-function track(event: string, payload?: Record<string, unknown>) {
-  console.info(`[analytics] ${event}`, payload ?? {});
-}
-
-function buildResult(answers: Record<string, string>): ResultPayload {
-  const stage = answers.stage ?? "";
-  const goal = answers.goal ?? "";
-  const blocker = answers.blocker ?? "";
-  const style = answers.style ?? "";
-  const time = answers.time ?? "";
-
-  const profileLabel =
-    style === "Step-by-step"
-      ? "Structured Executor"
-      : style === "Templates"
-        ? "Template-Driven Builder"
-        : style === "Examples"
-          ? "Example-Led Improver"
-          : "Action-Oriented Implementer";
-
-  const summary = `You are currently in "${stage}" and focused on "${goal}". This plan prioritizes fast wins while removing "${blocker}" with a ${style.toLowerCase()} workflow.`;
-
-  const actionPlan = [
-    "Week 1: Define one narrow outcome and set a daily execution ritual.",
-    "Week 2: Apply a repeatable template to produce consistent output.",
-    "Week 3: Optimize based on feedback and measurable signals.",
-    "Week 4: Consolidate into a sustainable operating routine.",
-  ];
-
-  if (time === "0-15 min") {
-    actionPlan[0] = "Week 1: Use a 10-minute micro-routine focused on one priority task.";
-  }
-
-  if (goal === "Increase conversion") {
-    actionPlan[2] = "Week 3: Test one conversion improvement each day and keep winners.";
-  }
-
-  if (blocker === "Lack of system") {
-    actionPlan[1] = "Week 2: Build a simple checklist system and run it daily.";
-  }
-
-  return {
-    profileLabel,
-    summary,
-    actionPlan,
-    suggestedTools: ["Notion/Docs", "Simple checklist board", "Weekly review sheet"],
-    trackingMethod: "Track daily completion + weekly KPI review.",
-  };
-}
+import { track } from "@/lib/leadgen/analytics";
+import { buildResult } from "@/lib/leadgen/engine";
+import { defaultTemplate as template } from "@/lib/leadgen/templates/default";
+import { Answers, ResultPayload } from "@/lib/leadgen/types";
 
 export default function Home() {
   const initialAnswers = useMemo(
-    () => Object.fromEntries(template.questions.map((q) => [q.id, ""])) as Record<string, string>,
+    () => Object.fromEntries(template.questions.map((q) => [q.id, ""])) as Answers,
     [],
   );
 
   const [started, setStarted] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
+  const [answers, setAnswers] = useState<Answers>(initialAnswers);
   const [loadingResult, setLoadingResult] = useState(false);
   const [result, setResult] = useState<ResultPayload | null>(null);
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [leadError, setLeadError] = useState("");
   const [bonusUnlocked, setBonusUnlocked] = useState(false);
+  const [submittingLead, setSubmittingLead] = useState(false);
 
   const isComplete = useMemo(() => Object.values(answers).every(Boolean), [answers]);
 
@@ -146,24 +37,55 @@ export default function Home() {
     setLoadingResult(true);
     track("assessment_completed", { answers });
 
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     const payload = buildResult(answers);
     setResult(payload);
     setLoadingResult(false);
     track("result_viewed", { profileLabel: payload.profileLabel });
   };
 
-  const onUnlock = (e: FormEvent) => {
+  const onUnlock = async (e: FormEvent) => {
     e.preventDefault();
+    setLeadError("");
+
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       setEmailError("Please enter a valid email address.");
       return;
     }
 
+    if (!result) {
+      setLeadError("Result not ready. Please complete assessment first.");
+      return;
+    }
+
     setEmailError("");
-    setBonusUnlocked(true);
-    track("lead_submitted");
-    track("bonus_unlocked");
+    setSubmittingLead(true);
+
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email,
+          source: template.productName,
+          answers,
+          profileLabel: result.profileLabel,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        throw new Error(data.error ?? "Lead submission failed");
+      }
+
+      setBonusUnlocked(true);
+      track("lead_submitted");
+      track("bonus_unlocked");
+    } catch (error) {
+      setLeadError(error instanceof Error ? error.message : "Submission failed");
+    } finally {
+      setSubmittingLead(false);
+    }
   };
 
   const onRestart = () => {
@@ -173,7 +95,9 @@ export default function Home() {
     setLoadingResult(false);
     setEmail("");
     setEmailError("");
+    setLeadError("");
     setBonusUnlocked(false);
+    setSubmittingLead(false);
     track("restart_clicked");
   };
 
@@ -278,7 +202,7 @@ export default function Home() {
         {result && (
           <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
             <h3 className="text-xl font-semibold">{template.bonusHeadline}</h3>
-            <p className="mt-2 text-sm text-slate-600">Submit your email to reveal the bonus content.</p>
+            <p className="mt-2 text-sm text-slate-600">Submit your email to unlock the bonus content.</p>
 
             <form onSubmit={onUnlock} className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input
@@ -289,15 +213,19 @@ export default function Home() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-3"
                 required
               />
-              <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-700">
-                {template.unlockCta}
+              <button
+                disabled={submittingLead}
+                className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {submittingLead ? "Submitting..." : template.unlockCta}
               </button>
             </form>
             {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
+            {leadError && <p className="mt-2 text-sm text-red-600">{leadError}</p>}
 
             {bonusUnlocked && (
               <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
-                ✅ Bonus unlocked. Replace this block with video/embed/download specific to your campaign.
+                ✅ Bonus unlocked. Replace this with your campaign-specific bonus content (video/embed/download).
               </div>
             )}
           </section>
