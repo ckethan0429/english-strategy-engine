@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { submitLead } from "@/lib/leadgen/lead-capture";
 import { LeadPayload } from "@/lib/leadgen/types";
 import { runAutomation } from "@/lib/leadgen/automation";
+import { appendLead } from "@/lib/leadgen/storage";
 
 function validEmail(email: string) {
   return /^\S+@\S+\.\S+$/.test(email);
@@ -57,6 +58,12 @@ export async function POST(req: NextRequest) {
 
     const payload = body as LeadPayload;
     const result = await submitLead(payload);
+
+    try {
+      await appendLead(payload);
+    } catch (error) {
+      console.error("[lead-storage]", error);
+    }
 
     // best-effort automation + notify: do not fail lead capture if side-effects fail
     try {

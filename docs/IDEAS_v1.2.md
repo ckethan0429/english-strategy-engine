@@ -2,7 +2,7 @@
 
 ## 1) Revenue & Offer Layer
 - [x] 템플릿별 **Tripwire 오퍼** 추가 (예: 9,900원 체크리스트 확장판)
-- [ ] 리드 제출 후 Thank-you 화면에서 **캘린더 예약 CTA** 노출
+- [x] 리드 제출 후 Thank-you 화면에서 **캘린더 예약 CTA** 노출
 - [~] 업종별 3단 오퍼 구조:
   - [x] Free lead magnet
   - [x] Low-ticket 진단
@@ -38,11 +38,11 @@
 - 템플릿 마켓형 구조:
   - `templates/*.ts`를 JSON으로 변환해 비개발자도 편집
 - 캠페인 복제 기능(새 템플릿 빠른 생성)
-- 캠페인별 퍼널 리포트 대시보드 추가
+- [x] 캠페인별 퍼널 리포트 대시보드 초안 추가(`/dashboard`)
 
 ## 6) Immediate Next Build Candidates
 - [x] UTM 저장 + 리드 payload 포함
 - [x] 개인정보 동의 체크박스 + 정책 링크(동의 문구)
-- [ ] Thank-you 페이지 분리(`/thanks?template=...`)
+- [x] Thank-you 페이지 분리(`/thanks?template=...`)
 - [ ] 관리자용 리드 CSV 다운로드
 - [x] 실시간 알림(새 리드 발생시 Telegram)

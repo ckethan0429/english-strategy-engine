@@ -31,8 +31,14 @@
   리드 전송 provider(mock/webhook)
 - `src/lib/leadgen/automation.ts`  
   자동화 webhook 연동 + 태깅/시퀀스 라우팅 필드
+- `src/lib/leadgen/storage.ts`  
+  로컬 NDJSON 저장(`data/leads.ndjson`) + 대시보드 집계용 read
 - `src/app/page.tsx`  
   공통 UI 플로우 (Hero → Assessment → Result → Lead Gate)
+- `src/app/thanks/page.tsx`  
+  리드 제출 후 thank-you + 예약 CTA 페이지
+- `src/app/dashboard/page.tsx`  
+  리드 집계 대시보드 초안
 
 ## PRD Files
 
@@ -116,6 +122,18 @@ AUTOMATION_WEBHOOK_URL=https://your-n8n-or-zapier-webhook
 
 - 리드 payload + 태그 + followUpSequence(`hot-3step`/`warm-3step`/`cold-nurture`) 전송
 - 실패해도 리드 저장 자체는 실패 처리하지 않음 (best-effort)
+
+### 5) Thank-you booking CTA (optional)
+
+`.env.local`
+
+```bash
+NEXT_PUBLIC_CALENDAR_URL=https://calendly.com/your-default
+NEXT_PUBLIC_CALENDAR_HOT_URL=https://calendly.com/your-hot-lead
+NEXT_PUBLIC_CALENDAR_WARM_URL=https://calendly.com/your-warm-lead
+```
+
+- 리드 제출 후 `/thanks` 페이지에서 등급별 예약 링크 노출
 
 ## How to Launch a New Campaign
 

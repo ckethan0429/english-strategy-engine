@@ -140,13 +140,21 @@ export default function Home() {
       }
 
       setBonusUnlocked(true);
+      const pickedOffer = selectedOffer || offers[0]?.name;
       track("lead_submitted", {
         template: templateKey,
         variant: abVariant,
-        offer: selectedOffer || offers[0]?.name,
+        offer: pickedOffer,
         utm,
       });
       track("bonus_unlocked", { template: templateKey, variant: abVariant, utm });
+
+      const params = new URLSearchParams({
+        template: templateKey,
+        grade: leadScore.grade,
+        offer: pickedOffer ?? "Starter Offer",
+      });
+      window.location.href = `/thanks?${params.toString()}`;
     } catch (error) {
       setLeadError(error instanceof Error ? error.message : "Submission failed");
     } finally {
