@@ -3,17 +3,19 @@
 import { FormEvent, useMemo, useState } from "react";
 import { track } from "@/lib/leadgen/analytics";
 import { buildResult } from "@/lib/leadgen/engine";
-import { defaultTemplate as template } from "@/lib/leadgen/templates/default";
+import { featuredTemplates, templates, TemplateKey } from "@/lib/leadgen/templates";
 import { Answers, ResultPayload } from "@/lib/leadgen/types";
 
+function initAnswers(templateKey: TemplateKey) {
+  return Object.fromEntries(templates[templateKey].questions.map((q) => [q.id, ""])) as Answers;
+}
+
 export default function Home() {
-  const initialAnswers = useMemo(
-    () => Object.fromEntries(template.questions.map((q) => [q.id, ""])) as Answers,
-    [],
-  );
+  const [templateKey, setTemplateKey] = useState<TemplateKey>("real-estate");
+  const template = templates[templateKey];
 
   const [started, setStarted] = useState(false);
-  const [answers, setAnswers] = useState<Answers>(initialAnswers);
+  const [answers, setAnswers] = useState<Answers>(() => initAnswers("real-estate"));
   const [loadingResult, setLoadingResult] = useState(false);
   const [result, setResult] = useState<ResultPayload | null>(null);
 
@@ -25,9 +27,23 @@ export default function Home() {
 
   const isComplete = useMemo(() => Object.values(answers).every(Boolean), [answers]);
 
+  const onChangeTemplate = (next: TemplateKey) => {
+    setTemplateKey(next);
+    setStarted(false);
+    setAnswers(initAnswers(next));
+    setLoadingResult(false);
+    setResult(null);
+    setEmail("");
+    setEmailError("");
+    setLeadError("");
+    setBonusUnlocked(false);
+    setSubmittingLead(false);
+    track("template_changed", { template: next });
+  };
+
   const onStart = () => {
     setStarted(true);
-    track("start_assessment");
+    track("start_assessment", { template: templateKey });
   };
 
   const onSubmitAssessment = async (e: FormEvent) => {
@@ -35,13 +51,13 @@ export default function Home() {
     if (!isComplete) return;
 
     setLoadingResult(true);
-    track("assessment_completed", { answers });
+    track("assessment_completed", { template: templateKey, answers });
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     const payload = buildResult(answers);
     setResult(payload);
     setLoadingResult(false);
-    track("result_viewed", { profileLabel: payload.profileLabel });
+    track("result_viewed", { template: templateKey, profileLabel: payload.profileLabel });
   };
 
   const onUnlock = async (e: FormEvent) => {
@@ -67,7 +83,7 @@ export default function Home() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email,
-          source: template.productName,
+          source: `${template.productName} (${templateKey})`,
           answers,
           profileLabel: result.profileLabel,
         }),
@@ -79,8 +95,8 @@ export default function Home() {
       }
 
       setBonusUnlocked(true);
-      track("lead_submitted");
-      track("bonus_unlocked");
+      track("lead_submitted", { template: templateKey });
+      track("bonus_unlocked", { template: templateKey });
     } catch (error) {
       setLeadError(error instanceof Error ? error.message : "Submission failed");
     } finally {
@@ -90,7 +106,7 @@ export default function Home() {
 
   const onRestart = () => {
     setStarted(false);
-    setAnswers(initialAnswers);
+    setAnswers(initAnswers(templateKey));
     setResult(null);
     setLoadingResult(false);
     setEmail("");
@@ -98,12 +114,27 @@ export default function Home() {
     setLeadError("");
     setBonusUnlocked(false);
     setSubmittingLead(false);
-    track("restart_clicked");
+    track("restart_clicked", { template: templateKey });
   };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-4xl px-6 py-12">
+        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+          <label className="text-sm font-medium text-slate-700">Campaign template</label>
+          <select
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+            value={templateKey}
+            onChange={(e) => onChangeTemplate(e.target.value as TemplateKey)}
+          >
+            {featuredTemplates.map((key) => (
+              <option key={key} value={key}>
+                {templates[key].productName}
+              </option>
+            ))}
+          </select>
+        </section>
+
         <section className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
           <p className="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
             {template.productName} · v1.2 Generic

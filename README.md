@@ -89,6 +89,16 @@ LEAD_WEBHOOK_URL=https://your-endpoint.example.com/leads
 
 현재는 콘솔 기반이며, `analytics.ts`에서 실제 도구 연동하면 됩니다.
 
+## Featured Campaigns (추천 3개)
+
+현재 바로 실행 가능한 추천 캠페인 3종:
+
+1. **부동산** (`real-estate`)
+2. **마케팅 성장** (`marketing`)
+3. **AI 생산성** (`ai-productivity`)
+
+위 3개는 랜딩 페이지 상단 Campaign template 셀렉터에서 바로 전환됩니다.
+
 ## Business-Ready Next Steps
 
 - GA4/PostHog 실제 연동
