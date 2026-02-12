@@ -33,4 +33,13 @@ export type LeadPayload = {
   source: string;
   answers: Answers;
   profileLabel: string;
+  consentAccepted: boolean;
+  consentAcceptedAt: string;
+  utm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+    term?: string;
+  };
 };

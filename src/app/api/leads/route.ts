@@ -6,6 +6,33 @@ function validEmail(email: string) {
   return /^\S+@\S+\.\S+$/.test(email);
 }
 
+async function notifyTelegramLead(payload: LeadPayload) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!botToken || !chatId) return;
+
+  const utm = payload.utm ?? {};
+  const text = [
+    "🔥 New Lead Captured",
+    `Source: ${payload.source}`,
+    `Email: ${payload.email}`,
+    `Profile: ${payload.profileLabel}`,
+    `Consent: ${payload.consentAccepted ? "yes" : "no"}`,
+    `UTM source/medium/campaign: ${utm.source ?? "-"} / ${utm.medium ?? "-"} / ${utm.campaign ?? "-"}`,
+  ].join("\n");
+
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Telegram notify failed: ${res.status}`);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Partial<LeadPayload>;
@@ -18,7 +45,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const result = await submitLead(body as LeadPayload);
+    if (!body.consentAccepted) {
+      return NextResponse.json({ ok: false, error: "Privacy consent is required" }, { status: 400 });
+    }
+
+    if (!body.consentAcceptedAt) {
+      return NextResponse.json({ ok: false, error: "Consent timestamp is required" }, { status: 400 });
+    }
+
+    const payload = body as LeadPayload;
+    const result = await submitLead(payload);
+
+    // best-effort notify: do not fail lead capture if telegram alert fails
+    try {
+      await notifyTelegramLead(payload);
+    } catch (error) {
+      console.error("[lead-notify:telegram]", error);
+    }
+
     return NextResponse.json({ ok: true, provider: result.provider });
   } catch (error) {
     return NextResponse.json(

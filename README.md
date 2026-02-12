@@ -52,6 +52,12 @@ npm run dev
 
 Open: <http://localhost:3000>
 
+## UTM / Consent / Telegram Alert (implemented)
+
+- UTM capture: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
+- Privacy consent checkbox is required before lead submit
+- New lead Telegram alert (optional) via server env config
+
 ## Lead Capture Providers
 
 ### 1) Mock (default)
@@ -76,6 +82,18 @@ LEAD_WEBHOOK_URL=https://your-endpoint.example.com/leads
 
 - `/api/leads`가 지정 webhook으로 POST
 - CRM, n8n, Zapier, Make 등에 바로 연결 가능
+
+### 3) Telegram lead alert (optional)
+
+`.env.local`
+
+```bash
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_CHAT_ID=123456789
+```
+
+- 새 리드 발생 시 텔레그램으로 요약 알림 전송
+- 실패해도 리드 저장 자체는 실패 처리하지 않음 (best-effort)
 
 ## How to Launch a New Campaign
 

@@ -10,6 +10,18 @@ function initAnswers(templateKey: TemplateKey) {
   return Object.fromEntries(templates[templateKey].questions.map((q) => [q.id, ""])) as Answers;
 }
 
+function getUtmParams() {
+  if (typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  return {
+    source: params.get("utm_source") ?? undefined,
+    medium: params.get("utm_medium") ?? undefined,
+    campaign: params.get("utm_campaign") ?? undefined,
+    content: params.get("utm_content") ?? undefined,
+    term: params.get("utm_term") ?? undefined,
+  };
+}
+
 export default function Home() {
   const [templateKey, setTemplateKey] = useState<TemplateKey>("real-estate");
   const template = templates[templateKey];
@@ -24,7 +36,9 @@ export default function Home() {
   const [leadError, setLeadError] = useState("");
   const [bonusUnlocked, setBonusUnlocked] = useState(false);
   const [submittingLead, setSubmittingLead] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
+  const utm = useMemo(() => getUtmParams(), []);
   const isComplete = useMemo(() => Object.values(answers).every(Boolean), [answers]);
 
   const onChangeTemplate = (next: TemplateKey) => {
@@ -38,12 +52,13 @@ export default function Home() {
     setLeadError("");
     setBonusUnlocked(false);
     setSubmittingLead(false);
+    setPrivacyConsent(false);
     track("template_changed", { template: next });
   };
 
   const onStart = () => {
     setStarted(true);
-    track("start_assessment", { template: templateKey });
+    track("start_assessment", { template: templateKey, utm });
   };
 
   const onSubmitAssessment = async (e: FormEvent) => {
@@ -51,13 +66,13 @@ export default function Home() {
     if (!isComplete) return;
 
     setLoadingResult(true);
-    track("assessment_completed", { template: templateKey, answers });
+    track("assessment_completed", { template: templateKey, answers, utm });
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     const payload = buildResult(answers);
     setResult(payload);
     setLoadingResult(false);
-    track("result_viewed", { template: templateKey, profileLabel: payload.profileLabel });
+    track("result_viewed", { template: templateKey, profileLabel: payload.profileLabel, utm });
   };
 
   const onUnlock = async (e: FormEvent) => {
@@ -66,6 +81,11 @@ export default function Home() {
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!privacyConsent) {
+      setLeadError("Please agree to the privacy consent to continue.");
       return;
     }
 
@@ -86,6 +106,9 @@ export default function Home() {
           source: `${template.productName} (${templateKey})`,
           answers,
           profileLabel: result.profileLabel,
+          consentAccepted: privacyConsent,
+          consentAcceptedAt: new Date().toISOString(),
+          utm,
         }),
       });
 
@@ -95,8 +118,8 @@ export default function Home() {
       }
 
       setBonusUnlocked(true);
-      track("lead_submitted", { template: templateKey });
-      track("bonus_unlocked", { template: templateKey });
+      track("lead_submitted", { template: templateKey, utm });
+      track("bonus_unlocked", { template: templateKey, utm });
     } catch (error) {
       setLeadError(error instanceof Error ? error.message : "Submission failed");
     } finally {
@@ -114,6 +137,7 @@ export default function Home() {
     setLeadError("");
     setBonusUnlocked(false);
     setSubmittingLead(false);
+    setPrivacyConsent(false);
     track("restart_clicked", { template: templateKey });
   };
 
@@ -235,21 +259,35 @@ export default function Home() {
             <h3 className="text-xl font-semibold">{template.bonusHeadline}</h3>
             <p className="mt-2 text-sm text-slate-600">Submit your email to unlock the bonus content.</p>
 
-            <form onSubmit={onUnlock} className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3"
-                required
-              />
-              <button
-                disabled={submittingLead}
-                className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-              >
-                {submittingLead ? "Submitting..." : template.unlockCta}
-              </button>
+            <form onSubmit={onUnlock} className="mt-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3"
+                  required
+                />
+                <button
+                  disabled={submittingLead}
+                  className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {submittingLead ? "Submitting..." : template.unlockCta}
+                </button>
+              </div>
+
+              <label className="flex items-start gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={privacyConsent}
+                  onChange={(e) => setPrivacyConsent(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  I agree to the collection and processing of my personal information for lead follow-up.
+                </span>
+              </label>
             </form>
             {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
             {leadError && <p className="mt-2 text-sm text-red-600">{leadError}</p>}

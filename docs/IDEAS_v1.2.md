@@ -36,8 +36,8 @@
 - 캠페인별 퍼널 리포트 대시보드 추가
 
 ## 6) Immediate Next Build Candidates
-1. UTM 저장 + 리드 payload 포함
-2. 개인정보 동의 체크박스 + 정책 링크
-3. Thank-you 페이지 분리(`/thanks?template=...`)
-4. 관리자용 리드 CSV 다운로드
-5. 실시간 알림(새 리드 발생시 Telegram)
+- [x] UTM 저장 + 리드 payload 포함
+- [x] 개인정보 동의 체크박스 + 정책 링크(동의 문구)
+- [ ] Thank-you 페이지 분리(`/thanks?template=...`)
+- [ ] 관리자용 리드 CSV 다운로드
+- [x] 실시간 알림(새 리드 발생시 Telegram)
