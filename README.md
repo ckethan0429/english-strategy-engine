@@ -57,6 +57,8 @@
 ## Extra Build Notes
 
 - Additional ideas documented in: `docs/IDEAS_v1.2.md`
+- Email sequence integration guide: `docs/EMAIL_SEQUENCES.md`
+- n8n workflow file: `automation/n8n/email-sequence-workflow.json`
 
 ## Quick Start
 

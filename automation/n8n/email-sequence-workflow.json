@@ -1,0 +1,219 @@
+{
+  "name": "LeadGen Email Sequences (D0/D2/D5)",
+  "nodes": [
+    {
+      "id": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Lead Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadgen/email-sequence",
+        "responseMode": "onReceived"
+      },
+      "position": [200, 300]
+    },
+    {
+      "id": "ValidateConsent",
+      "type": "n8n-nodes-base.if",
+      "name": "Consent Accepted?",
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.consentAccepted}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "position": [430, 300]
+    },
+    {
+      "id": "ByGrade",
+      "type": "n8n-nodes-base.switch",
+      "name": "Route by Lead Grade",
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.leadGrade || 'COLD'}}",
+        "rules": [
+          { "operation": "equal", "value2": "HOT" },
+          { "operation": "equal", "value2": "WARM" },
+          { "operation": "equal", "value2": "COLD" }
+        ]
+      },
+      "position": [670, 300]
+    },
+    {
+      "id": "SendD0",
+      "type": "n8n-nodes-base.emailSend",
+      "name": "Send D0 Email",
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$json.mail.d0.subject}}",
+        "text": "={{$json.mail.d0.body}}"
+      },
+      "position": [930, 180]
+    },
+    {
+      "id": "WaitD2",
+      "type": "n8n-nodes-base.wait",
+      "name": "Wait 2 days",
+      "parameters": {
+        "amount": 2,
+        "unit": "days"
+      },
+      "position": [1160, 180]
+    },
+    {
+      "id": "SendD2",
+      "type": "n8n-nodes-base.emailSend",
+      "name": "Send D2 Email",
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$json.mail.d2.subject}}",
+        "text": "={{$json.mail.d2.body}}"
+      },
+      "position": [1380, 180]
+    },
+    {
+      "id": "WaitD5",
+      "type": "n8n-nodes-base.wait",
+      "name": "Wait 3 days",
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "position": [1590, 180]
+    },
+    {
+      "id": "SendD5",
+      "type": "n8n-nodes-base.emailSend",
+      "name": "Send D5 Email",
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$json.mail.d5.subject}}",
+        "text": "={{$json.mail.d5.body}}"
+      },
+      "position": [1810, 180]
+    },
+    {
+      "id": "PrepareCopy",
+      "type": "n8n-nodes-base.code",
+      "name": "Prepare Mail Copy",
+      "parameters": {
+        "jsCode": "const src = String($json.source || '').toLowerCase();\nconst isRealEstate = src.includes('real-estate');\nconst isMarketing = src.includes('marketing');\nconst isAI = src.includes('ai-productivity');\n\nconst grade = String($json.leadGrade || 'COLD');\nconst offer = $json.selectedOffer || 'Starter Offer';\n\nfunction copy(kind){\n  if (kind === 'd0') {\n    if (isRealEstate) return { subject: '[부동산] 요청하신 보너스 자료 전달', body: `안녕하세요!\n보너스 자료를 전달드립니다.\n추천 오퍼: ${offer}\n\n궁금한 점 있으면 바로 답장 주세요.`};\n    if (isMarketing) return { subject: '[마케팅] 보너스 훅 자료 전달', body: `안녕하세요!\n요청하신 훅 자료를 먼저 드립니다.\n추천 오퍼: ${offer}`};\n    if (isAI) return { subject: '[AI] 실무 프롬프트팩 전달', body: `안녕하세요!\n요청하신 AI 프롬프트팩을 전달드립니다.\n추천 오퍼: ${offer}`};\n    return { subject: '[LeadGen] 보너스 자료 전달', body: `보너스 자료 전달드립니다.\n추천 오퍼: ${offer}`};\n  }\n  if (kind === 'd2') {\n    return { subject: '[실행팁] 2일차 체크포인트', body: `2일차 실행 팁입니다.\n오늘은 1가지 핵심 액션만 완료해보세요.\n리드등급: ${grade}`};\n  }\n  return { subject: '[다음단계] 맞춤 제안 안내', body: `현재 상황 기준 다음 단계를 제안드립니다.\n추천 오퍼: ${offer}\n원하시면 상담 예약 링크를 드릴게요.`};\n}\n\nreturn [{ json: { ...$json, mail: { d0: copy('d0'), d2: copy('d2'), d5: copy('d5') } } }];"
+      },
+      "position": [930, 420]
+    }
+  ],
+  "connections": {
+    "Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Consent Accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consent Accepted?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Mail Copy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Prepare Mail Copy": {
+      "main": [
+        [
+          {
+            "node": "Route by Lead Grade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Lead Grade": {
+      "main": [
+        [
+          {
+            "node": "Send D0 Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send D0 Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send D0 Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send D0 Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 days": {
+      "main": [
+        [
+          {
+            "node": "Send D2 Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send D2 Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 days": {
+      "main": [
+        [
+          {
+            "node": "Send D5 Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
