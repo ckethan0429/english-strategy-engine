@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lead Generator – English Speaking Fluency
 
-## Getting Started
+One-page lead generator to provide a personalized 4-week English speaking plan and unlock a bonus video after email submission.
 
-First, run the development server:
+## Documents
+
+- `PRD_v1.0.md`: Original MVP PRD (high-level)
+- `PRD_v1.1.md`: Expanded implementation PRD (logic, data, analytics, error handling)
+
+## v1.0 vs v1.1 (Quick Diff)
+
+### v1.0
+- Defines concept, page flow, core goals
+- Basic tech stack and KPIs
+- MVP scope boundaries
+
+### v1.1
+- Adds target user persona
+- Finalizes survey options (single-select)
+- Specifies personalization mapping logic + GPT fallback
+- Defines required analytics events and funnel
+- Adds validation rules and edge/error handling
+- Adds implementation-level acceptance criteria
+
+## Development Setup (Next.js + Tailwind)
+
+### Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open: <http://localhost:3000>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Suggested Build Order
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Build hero + survey UI
+2. Implement rule-based plan generator (fallback-first)
+3. Add email gate + video unlock
+4. Add analytics events
+5. Polish loading/error states
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Keep MVP fast and deterministic.
+- Use GPT generation only as an enhancement; fallback logic must always work.
