@@ -22,6 +22,21 @@ One-page lead generator to provide a personalized 4-week English speaking plan a
 - Adds validation rules and edge/error handling
 - Adds implementation-level acceptance criteria
 
+## Version Branches
+
+- `v1.0-mvp`: English speaking lead generator MVP
+- `v1.1-enhanced`: Enhanced UX + mapping + analytics scaffolding
+- `v1.2-generic-builder`: Generic reusable lead generator template
+
+## v1.2 Generic Customization
+
+Edit `src/app/page.tsx` → `template` object:
+- Hero copy (`heroHeadline`, `heroSubheadline`)
+- Question set (`questions`)
+- CTA labels and bonus headline
+
+You can reuse the same UI/flow for any niche by changing only template values and (optionally) `buildResult()` rules.
+
 ## Development Setup (Next.js + Tailwind)
 
 ### Run locally
