@@ -5,6 +5,7 @@ import { track } from "@/lib/leadgen/analytics";
 import { buildResult } from "@/lib/leadgen/engine";
 import { featuredTemplates, templates, TemplateKey } from "@/lib/leadgen/templates";
 import { Answers, ResultPayload } from "@/lib/leadgen/types";
+import { scoreLead } from "@/lib/leadgen/scoring";
 
 function initAnswers(templateKey: TemplateKey) {
   return Object.fromEntries(templates[templateKey].questions.map((q) => [q.id, ""])) as Answers;
@@ -39,6 +40,7 @@ export default function Home() {
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const utm = useMemo(() => getUtmParams(), []);
+  const leadScore = useMemo(() => scoreLead(answers), [answers]);
   const isComplete = useMemo(() => Object.values(answers).every(Boolean), [answers]);
 
   const onChangeTemplate = (next: TemplateKey) => {
@@ -106,6 +108,9 @@ export default function Home() {
           source: `${template.productName} (${templateKey})`,
           answers,
           profileLabel: result.profileLabel,
+          leadScore: leadScore.score,
+          leadGrade: leadScore.grade,
+          scoreReasons: leadScore.reasons,
           consentAccepted: privacyConsent,
           consentAcceptedAt: new Date().toISOString(),
           utm,
@@ -230,6 +235,16 @@ export default function Home() {
           <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
             <h3 className="text-xl font-semibold">{template.resultTitle}</h3>
             <p className="mt-2 font-medium text-indigo-700">{result.profileLabel}</p>
+            <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900">
+              Lead score: <strong>{leadScore.score}</strong> / 100 · Grade: <strong>{leadScore.grade}</strong>
+              {leadScore.reasons.length > 0 && (
+                <ul className="mt-2 list-disc pl-5">
+                  {leadScore.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <p className="mt-3 text-slate-700">{result.summary}</p>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4">

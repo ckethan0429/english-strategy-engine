@@ -18,6 +18,7 @@ async function notifyTelegramLead(payload: LeadPayload) {
     `Source: ${payload.source}`,
     `Email: ${payload.email}`,
     `Profile: ${payload.profileLabel}`,
+    `Lead score: ${payload.leadScore ?? "-"} (${payload.leadGrade ?? "-"})`,
     `Consent: ${payload.consentAccepted ? "yes" : "no"}`,
     `UTM source/medium/campaign: ${utm.source ?? "-"} / ${utm.medium ?? "-"} / ${utm.campaign ?? "-"}`,
   ].join("\n");

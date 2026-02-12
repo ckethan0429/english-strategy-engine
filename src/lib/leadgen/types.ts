@@ -33,6 +33,9 @@ export type LeadPayload = {
   source: string;
   answers: Answers;
   profileLabel: string;
+  leadScore?: number;
+  leadGrade?: "COLD" | "WARM" | "HOT";
+  scoreReasons?: string[];
   consentAccepted: boolean;
   consentAcceptedAt: string;
   utm?: {

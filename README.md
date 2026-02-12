@@ -56,6 +56,7 @@ Open: <http://localhost:3000>
 
 - UTM capture: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
 - Privacy consent checkbox is required before lead submit
+- Lead scoring enabled (0-100 + HOT/WARM/COLD)
 - New lead Telegram alert (optional) via server env config
 
 ## Lead Capture Providers

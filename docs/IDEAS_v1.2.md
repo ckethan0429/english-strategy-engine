@@ -16,9 +16,10 @@
 - 모바일 first 최적화(스크롤 길이 절감)
 
 ## 3) Lead Quality Scoring
-- 답변 기반 점수화(구매의도/긴급성/예산)
-- Hot lead는 즉시 알림(텔레그램/슬랙)
-- CRM에 `leadScore`, `templateKey`, `primaryGoal` 필드 저장
+- [x] 답변 기반 점수화(구매의도/긴급성/예산)
+- [x] Hot/Warm/Cold 등급 산출
+- [x] 리드 알림 메시지에 score/grade 포함
+- [ ] CRM에 `leadScore`, `templateKey`, `primaryGoal` 필드 저장
 
 ## 4) Automation & Ops
 - webhook → n8n 연결 기본 플로우 제공
