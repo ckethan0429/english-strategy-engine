@@ -18,8 +18,18 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-bold">Lead Dashboard (Draft)</h1>
-        <p className="mt-2 text-slate-600">Stored leads: {total}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Lead Dashboard (Draft)</h1>
+            <p className="mt-2 text-slate-600">Stored leads: {total}</p>
+          </div>
+          <a
+            href="/api/leads/export"
+            className="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          >
+            Download CSV
+          </a>
+        </div>
 
         <section className="mt-6 grid gap-4 sm:grid-cols-3">
           <Card title="HOT" value={hot} />

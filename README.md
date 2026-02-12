@@ -38,7 +38,9 @@
 - `src/app/thanks/page.tsx`  
   리드 제출 후 thank-you + 예약 CTA 페이지
 - `src/app/dashboard/page.tsx`  
-  리드 집계 대시보드 초안
+  리드 집계 대시보드 초안 + CSV 다운로드 버튼
+- `src/app/api/leads/export/route.ts`  
+  관리자용 리드 CSV export endpoint
 
 ## PRD Files
 
@@ -156,6 +158,11 @@ NEXT_PUBLIC_CALENDAR_WARM_URL=https://calendly.com/your-warm-lead
 - `restart_clicked`
 
 현재는 콘솔 기반이며, `analytics.ts`에서 실제 도구 연동하면 됩니다.
+
+## Admin Utilities
+
+- Dashboard: `/dashboard`
+- CSV Export: `/api/leads/export`
 
 ## Featured Campaigns (추천 3개)
 
