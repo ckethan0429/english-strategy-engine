@@ -32,6 +32,16 @@
 - `PRD_v1.1.md`
 - `PRD_v1.2_TEMPLATE.md` (범용 템플릿)
 
+## Bonus Assets (connected)
+
+- Real Estate: `public/bonus/real-estate-checklist.md`
+- Marketing: `public/bonus/marketing-hooks.md`
+- AI Productivity: `public/bonus/ai-prompts.md`
+
+## Extra Build Notes
+
+- Additional ideas documented in: `docs/IDEAS_v1.2.md`
+
 ## Quick Start
 
 ```bash

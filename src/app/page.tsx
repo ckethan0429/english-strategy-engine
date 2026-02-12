@@ -256,7 +256,21 @@ export default function Home() {
 
             {bonusUnlocked && (
               <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
-                ✅ Bonus unlocked. Replace this with your campaign-specific bonus content (video/embed/download).
+                ✅ Bonus unlocked.
+                {template.bonusType === "download" && template.bonusUrl ? (
+                  <div className="mt-3">
+                    <a
+                      href={template.bonusUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+                    >
+                      Open Bonus Resource
+                    </a>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm">Replace this with your campaign-specific bonus content.</p>
+                )}
               </div>
             )}
           </section>

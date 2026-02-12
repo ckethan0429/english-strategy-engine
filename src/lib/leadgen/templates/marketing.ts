@@ -11,6 +11,7 @@ export const marketingTemplate: TemplateConfig = {
   bonusHeadline: "Unlock: 30 High-Converting Campaign Hooks",
   unlockCta: "Unlock Bonus Hooks",
   bonusType: "download",
+  bonusUrl: "/bonus/marketing-hooks.md",
   questions: [
     {
       id: "stage",

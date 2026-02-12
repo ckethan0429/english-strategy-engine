@@ -11,6 +11,7 @@ export const aiProductivityTemplate: TemplateConfig = {
   bonusHeadline: "Unlock: 50 Practical AI Prompts for Work",
   unlockCta: "Unlock Prompt Pack",
   bonusType: "download",
+  bonusUrl: "/bonus/ai-prompts.md",
   questions: [
     {
       id: "role",

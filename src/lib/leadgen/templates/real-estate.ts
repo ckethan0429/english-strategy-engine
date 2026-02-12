@@ -11,6 +11,7 @@ export const realEstateTemplate: TemplateConfig = {
   bonusHeadline: "Unlock: Top 10 Deal-Check Checklist",
   unlockCta: "Unlock Checklist",
   bonusType: "download",
+  bonusUrl: "/bonus/real-estate-checklist.md",
   questions: [
     {
       id: "capital",
