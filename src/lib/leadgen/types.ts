@@ -36,6 +36,8 @@ export type LeadPayload = {
   leadScore?: number;
   leadGrade?: "COLD" | "WARM" | "HOT";
   scoreReasons?: string[];
+  abVariant?: "A" | "B";
+  selectedOffer?: string;
   consentAccepted: boolean;
   consentAcceptedAt: string;
   utm?: {

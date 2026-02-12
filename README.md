@@ -17,12 +17,20 @@
   캠페인 템플릿(문구/문항/CTA)
 - `src/lib/leadgen/engine.ts`  
   규칙 기반 결과 생성 엔진 (fallback-safe)
+- `src/lib/leadgen/scoring.ts`  
+  리드 점수/등급 산출 (HOT/WARM/COLD)
+- `src/lib/leadgen/offers.ts`  
+  템플릿별 오퍼 계층(Tripwire/Core)
+- `src/lib/leadgen/experiments.ts`  
+  Hero A/B variant 배정
 - `src/lib/leadgen/analytics.ts`  
   이벤트 트래킹 훅 (GA4/PostHog 연결 지점)
 - `src/app/api/leads/route.ts`  
   리드 수집 API 엔드포인트
 - `src/lib/leadgen/lead-capture.ts`  
   리드 전송 provider(mock/webhook)
+- `src/lib/leadgen/automation.ts`  
+  자동화 webhook 연동 + 태깅/시퀀스 라우팅 필드
 - `src/app/page.tsx`  
   공통 UI 플로우 (Hero → Assessment → Result → Lead Gate)
 
@@ -57,6 +65,8 @@ Open: <http://localhost:3000>
 - UTM capture: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
 - Privacy consent checkbox is required before lead submit
 - Lead scoring enabled (0-100 + HOT/WARM/COLD)
+- Revenue offer layer enabled (tripwire/core offer recommendation)
+- Hero A/B test enabled (variant A/B persisted)
 - New lead Telegram alert (optional) via server env config
 
 ## Lead Capture Providers
@@ -94,6 +104,17 @@ TELEGRAM_CHAT_ID=123456789
 ```
 
 - 새 리드 발생 시 텔레그램으로 요약 알림 전송
+- 실패해도 리드 저장 자체는 실패 처리하지 않음 (best-effort)
+
+### 4) Automation webhook (optional)
+
+`.env.local`
+
+```bash
+AUTOMATION_WEBHOOK_URL=https://your-n8n-or-zapier-webhook
+```
+
+- 리드 payload + 태그 + followUpSequence(`hot-3step`/`warm-3step`/`cold-nurture`) 전송
 - 실패해도 리드 저장 자체는 실패 처리하지 않음 (best-effort)
 
 ## How to Launch a New Campaign

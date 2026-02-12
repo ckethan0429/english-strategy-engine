@@ -1,19 +1,19 @@
 # Additional Ideas (while building v1.2)
 
 ## 1) Revenue & Offer Layer
-- 템플릿별 **Tripwire 오퍼** 추가 (예: 9,900원 체크리스트 확장판)
-- 리드 제출 후 Thank-you 화면에서 **캘린더 예약 CTA** 노출
-- 업종별 3단 오퍼 구조:
-  - Free lead magnet
-  - Low-ticket 진단
-  - Core 서비스/컨설팅
+- [x] 템플릿별 **Tripwire 오퍼** 추가 (예: 9,900원 체크리스트 확장판)
+- [ ] 리드 제출 후 Thank-you 화면에서 **캘린더 예약 CTA** 노출
+- [~] 업종별 3단 오퍼 구조:
+  - [x] Free lead magnet
+  - [x] Low-ticket 진단
+  - [x] Core 서비스/컨설팅
 
 ## 2) Conversion Optimization
-- Hero 영역 A/B 테스트 자동 스위치
-- 질문 수 5개 vs 7개 실험
-- 이메일 게이트 문구 실험:
+- [x] Hero 영역 A/B 테스트 자동 스위치
+- [ ] 질문 수 5개 vs 7개 실험
+- [ ] 이메일 게이트 문구 실험:
   - "보너스 받기" vs "내 상황 맞춤 가이드 받기"
-- 모바일 first 최적화(스크롤 길이 절감)
+- [ ] 모바일 first 최적화(스크롤 길이 절감)
 
 ## 3) Lead Quality Scoring
 - [x] 답변 기반 점수화(구매의도/긴급성/예산)
@@ -22,10 +22,14 @@
 - [ ] CRM에 `leadScore`, `templateKey`, `primaryGoal` 필드 저장
 
 ## 4) Automation & Ops
-- webhook → n8n 연결 기본 플로우 제공
-- 자동 태깅:
-  - real-estate / marketing / ai-productivity
-- 리드 제출 후 자동 이메일 시퀀스(3-step)
+- [x] webhook → n8n 연결 기본 플로우 제공
+- [x] 자동 태깅:
+  - [x] real-estate / marketing / ai-productivity
+- [x] 리드 등급 기반 시퀀스 라우팅 필드 생성
+  - [x] hot-3step
+  - [x] warm-3step
+  - [x] cold-nurture
+- [ ] 리드 제출 후 자동 이메일 시퀀스(실제 발송 연결)
   - D0: 보너스 전달
   - D2: 실행 팁
   - D5: 상담/상품 제안

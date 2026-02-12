@@ -6,6 +6,8 @@ import { buildResult } from "@/lib/leadgen/engine";
 import { featuredTemplates, templates, TemplateKey } from "@/lib/leadgen/templates";
 import { Answers, ResultPayload } from "@/lib/leadgen/types";
 import { scoreLead } from "@/lib/leadgen/scoring";
+import { getOffers } from "@/lib/leadgen/offers";
+import { pickVariant } from "@/lib/leadgen/experiments";
 
 function initAnswers(templateKey: TemplateKey) {
   return Object.fromEntries(templates[templateKey].questions.map((q) => [q.id, ""])) as Answers;
@@ -38,12 +40,22 @@ export default function Home() {
   const [bonusUnlocked, setBonusUnlocked] = useState(false);
   const [submittingLead, setSubmittingLead] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [abVariant, setAbVariant] = useState<"A" | "B">("A");
+  const [selectedOffer, setSelectedOffer] = useState("");
 
   const utm = useMemo(() => getUtmParams(), []);
   const leadScore = useMemo(() => scoreLead(answers), [answers]);
+  const offers = useMemo(() => getOffers(templateKey, leadScore.grade), [templateKey, leadScore.grade]);
+  const variantCopy = useMemo(() => pickVariant(templateKey), [templateKey]);
+  const heroHeadline = variantCopy.headline ?? template.heroHeadline;
+  const heroSubheadline = variantCopy.subheadline ?? template.heroSubheadline;
+  const startCta = variantCopy.cta ?? template.startCta;
+
   const isComplete = useMemo(() => Object.values(answers).every(Boolean), [answers]);
 
   const onChangeTemplate = (next: TemplateKey) => {
+    const variant = pickVariant(next);
+    setAbVariant(variant.id);
     setTemplateKey(next);
     setStarted(false);
     setAnswers(initAnswers(next));
@@ -55,12 +67,15 @@ export default function Home() {
     setBonusUnlocked(false);
     setSubmittingLead(false);
     setPrivacyConsent(false);
-    track("template_changed", { template: next });
+    setSelectedOffer("");
+    track("template_changed", { template: next, variant: variant.id });
   };
 
   const onStart = () => {
+    const variant = pickVariant(templateKey);
+    setAbVariant(variant.id);
     setStarted(true);
-    track("start_assessment", { template: templateKey, utm });
+    track("start_assessment", { template: templateKey, variant: variant.id, utm });
   };
 
   const onSubmitAssessment = async (e: FormEvent) => {
@@ -68,13 +83,13 @@ export default function Home() {
     if (!isComplete) return;
 
     setLoadingResult(true);
-    track("assessment_completed", { template: templateKey, answers, utm });
+    track("assessment_completed", { template: templateKey, variant: abVariant, answers, utm });
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     const payload = buildResult(answers);
     setResult(payload);
     setLoadingResult(false);
-    track("result_viewed", { template: templateKey, profileLabel: payload.profileLabel, utm });
+    track("result_viewed", { template: templateKey, variant: abVariant, profileLabel: payload.profileLabel, utm });
   };
 
   const onUnlock = async (e: FormEvent) => {
@@ -111,6 +126,8 @@ export default function Home() {
           leadScore: leadScore.score,
           leadGrade: leadScore.grade,
           scoreReasons: leadScore.reasons,
+          abVariant,
+          selectedOffer: selectedOffer || offers[0]?.name,
           consentAccepted: privacyConsent,
           consentAcceptedAt: new Date().toISOString(),
           utm,
@@ -123,8 +140,13 @@ export default function Home() {
       }
 
       setBonusUnlocked(true);
-      track("lead_submitted", { template: templateKey, utm });
-      track("bonus_unlocked", { template: templateKey, utm });
+      track("lead_submitted", {
+        template: templateKey,
+        variant: abVariant,
+        offer: selectedOffer || offers[0]?.name,
+        utm,
+      });
+      track("bonus_unlocked", { template: templateKey, variant: abVariant, utm });
     } catch (error) {
       setLeadError(error instanceof Error ? error.message : "Submission failed");
     } finally {
@@ -143,7 +165,8 @@ export default function Home() {
     setBonusUnlocked(false);
     setSubmittingLead(false);
     setPrivacyConsent(false);
-    track("restart_clicked", { template: templateKey });
+    setSelectedOffer("");
+    track("restart_clicked", { template: templateKey, variant: abVariant });
   };
 
   return (
@@ -166,17 +189,17 @@ export default function Home() {
 
         <section className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
           <p className="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-            {template.productName} · v1.2 Generic
+            {template.productName} · v1.2 Generic · Variant {abVariant}
           </p>
-          <h1 className="mt-4 text-3xl font-bold md:text-4xl">{template.heroHeadline}</h1>
-          <p className="mt-3 max-w-2xl text-slate-600">{template.heroSubheadline}</p>
+          <h1 className="mt-4 text-3xl font-bold md:text-4xl">{heroHeadline}</h1>
+          <p className="mt-3 max-w-2xl text-slate-600">{heroSubheadline}</p>
 
           {!started && (
             <button
               onClick={onStart}
               className="mt-6 rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700"
             >
-              {template.startCta}
+              {startCta}
             </button>
           )}
         </section>
@@ -266,6 +289,30 @@ export default function Home() {
             </div>
 
             <p className="mt-4 text-slate-700">Tracking method: {result.trackingMethod}</p>
+
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="font-medium text-amber-900">Recommended Next Offer</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {offers.map((offer) => {
+                  const selected = (selectedOffer || offers[0]?.name) === offer.name;
+                  return (
+                    <button
+                      key={offer.name}
+                      type="button"
+                      onClick={() => setSelectedOffer(offer.name)}
+                      className={`rounded-xl border p-3 text-left ${
+                        selected ? "border-amber-500 bg-white" : "border-amber-200 bg-amber-50"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{offer.name}</p>
+                      <p className="text-xs text-slate-600">{offer.price}</p>
+                      <p className="mt-1 text-xs text-slate-700">{offer.description}</p>
+                      <p className="mt-2 text-xs font-medium text-amber-700">{offer.ctaLabel}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </section>
         )}
 

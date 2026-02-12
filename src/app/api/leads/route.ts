@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitLead } from "@/lib/leadgen/lead-capture";
 import { LeadPayload } from "@/lib/leadgen/types";
+import { runAutomation } from "@/lib/leadgen/automation";
 
 function validEmail(email: string) {
   return /^\S+@\S+\.\S+$/.test(email);
@@ -57,7 +58,13 @@ export async function POST(req: NextRequest) {
     const payload = body as LeadPayload;
     const result = await submitLead(payload);
 
-    // best-effort notify: do not fail lead capture if telegram alert fails
+    // best-effort automation + notify: do not fail lead capture if side-effects fail
+    try {
+      await runAutomation(payload);
+    } catch (error) {
+      console.error("[lead-automation]", error);
+    }
+
     try {
       await notifyTelegramLead(payload);
     } catch (error) {
