@@ -128,3 +128,42 @@ export async function createCheckinRecord(input: {
     ],
   );
 }
+
+export async function getPlanById(planId: number) {
+  await ensureSchema();
+
+  const planRes = await pool.query(
+    `SELECT
+      p.id,
+      p.strategy_text,
+      p.weekly_structure,
+      p.created_at,
+      g.id as goal_id,
+      g.target_type,
+      g.duration,
+      g.constraints,
+      u.id as user_id,
+      u.email,
+      u.timezone
+    FROM plans p
+    JOIN goals g ON g.id = p.goal_id
+    JOIN users u ON u.id = g.user_id
+    WHERE p.id = $1`,
+    [planId],
+  );
+
+  if (planRes.rowCount === 0) return null;
+
+  const checkinsRes = await pool.query(
+    `SELECT id, week_number, status, reason, energy, adjust_need, adjustment_note, created_at
+     FROM checkins
+     WHERE plan_id = $1
+     ORDER BY week_number ASC, created_at ASC`,
+    [planId],
+  );
+
+  return {
+    plan: planRes.rows[0],
+    checkins: checkinsRes.rows,
+  };
+}
