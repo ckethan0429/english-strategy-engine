@@ -15,6 +15,10 @@ const initialCheckin: CheckinInput = {
 export default function CheckinByPlanPage() {
   const params = useParams<{ planId: string }>();
   const planId = useMemo(() => Number(params?.planId || 0), [params]);
+  const email = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("email") ?? "";
+  }, []);
 
   const [checkin, setCheckin] = useState<CheckinInput>(initialCheckin);
   const [weekNumber, setWeekNumber] = useState("1");
@@ -62,6 +66,7 @@ export default function CheckinByPlanPage() {
           <h1 className="text-3xl font-bold">Weekly Check-in</h1>
           <p className="mt-2 text-slate-600">Submit your weekly result and get automatic strategy adjustment.</p>
           <p className="mt-1 text-sm text-slate-500">plan_id: {planId || "invalid"}</p>
+          <p className="mt-1 text-sm text-slate-500">email: {email || "unknown"}</p>
 
           <form onSubmit={onWeeklyCheckin} className="mt-6 grid gap-4 sm:grid-cols-2">
             <Select label="Week number" value={weekNumber} options={["1", "2", "3", "4"]} onChange={setWeekNumber} />

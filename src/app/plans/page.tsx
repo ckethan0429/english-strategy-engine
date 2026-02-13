@@ -127,7 +127,7 @@ export default function PlansPage() {
                     View Detail
                   </button>
                   <a
-                    href={`/checkin/${plan.id}`}
+                    href={`/checkin/${plan.id}?email=${encodeURIComponent(plan.email)}`}
                     className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
                   >
                     Weekly Check-in
