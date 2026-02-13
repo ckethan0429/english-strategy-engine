@@ -75,74 +75,92 @@ AI가 추가로 구조화 질문을 수행:
 
 ---
 
-## 4. Product Flow (Execution Loop)
+## 4. Execution Layer (MVP)
 
-### 1) Intake Diagnosis
-- 현재 레벨, 목표, 사용 가능 시간, 주요 장애요인 진단
-- 출력: 개인 전략 프로필
+### 4.1 Calendar Integration
+- 4주 플랜 기반 ICS 일정 생성
+- 반복 규칙 포함 (주 5회 / 특정 시간대)
+- 캘린더 제목 예:
+  - `[Speak] 10-min Shadowing`
+  - `[Speak] 3-min Free Talk`
 
-### 2) 4-Week Strategy Plan
-- 주차별 목표, 일일 과제, 측정지표 생성
-- 예: 주간 녹음 횟수, 실전 말하기 횟수, 회피 상황 감소율
-
-### 3) Calendar Commitment
-- 사용자의 캘린더/리마인더에 실행 슬롯 배치
-- 미실행 시 재알림 및 보강 태스크 제안
-
-### 4) Weekly Check-in
-- 실행률, 실패 패턴, 에너지/동기 상태 점검
-- 자동 회고 질문 + 데이터 기반 진단
-
-### 5) Strategy Adjustment
-- 실패 원인 분류: 시간 부족 / 난이도 과다 / 심리적 저항 / 환경 문제
-- 다음 주 전략 자동 수정 (난이도, 시간, 과제 방식 조정)
+### 4.2 Weekly Check-in System
+매주 자동 체크인 질문:
+1. 이번 주 목표 달성 여부 (Yes / No)
+2. 실패한 날의 주요 이유
+3. 에너지 수준
+4. 다음 주 난이도 조정 필요 여부
 
 ---
 
-## 5. Core Mechanisms
+## 5. Feedback & Adjustment Layer
+AI는 체크인 결과를 기반으로:
+- 3회 연속 실패 시 → 난이도 축소
+- 2주 연속 성공 시 → 발화 시간 확대
+- 특정 실패 원인 반복 시 → 전략 변경
 
-### 5.1 Execution Metrics
-- 주간 말하기 세션 수
-- 총 말하기 시간
-- 녹음/피드백 루프 수행 횟수
-- 계획 대비 실행률
-
-### 5.2 Failure Analysis Model
-- Missed Task 로그 수집
-- 원인 태깅(시간/심리/설계/환경)
-- 원인별 개입 규칙 적용
-
-### 5.3 Strategy Update Rules (MVP)
-- 실행률 < 50%: 과제량 30% 축소 + 마찰 제거
-- 실행률 50~80%: 현재 전략 유지 + 장애요인 1개 개선
-- 실행률 > 80%: 난이도/실전성 단계적 상향
+예:
+- “시간 부족” 반복 → 10분 → 5분 구조로 조정
+- “자신감 부족” 반복 → 녹음 대신 1:1 대화 시뮬레이션 강화
 
 ---
 
-## 6. Data & Validation
-- Required: 진단 응답, 주간 체크인 응답, 실행 로그
-- Optional: 캘린더 연동 정보, 리마인더 반응
-- Validation:
-  - 필수 문항 누락 방지
-  - 주간 체크인 미완료 시 알림 트리거
+## 6. User Flow (MVP)
+1. Goal 입력
+2. 진단 인터뷰 진행
+3. 4주 전략 생성
+4. “Track This Plan” 클릭
+5. ICS 일정 다운로드
+6. 주간 체크인 이메일 수신
+7. 전략 자동 수정
 
 ---
 
-## 7. Success Criteria (Behavior-Centric)
-- 4주 유지율 (retention)
-- 주간 실행률 평균
-- 체크인 완료율
-- 사용자 자기보고 지표: “실제로 말하기가 늘었다”
+## 7. Data Model (MVP)
+
+### User
+- id
+- email
+- timezone
+
+### Goal
+- user_id
+- target_type
+- duration
+- constraints
+
+### Plan
+- goal_id
+- strategy_text
+- weekly_structure
+- created_at
+
+### Checkin
+- plan_id
+- week_number
+- status
+- reason
+- adjustment_note
 
 ---
 
-## 8. Out of Scope (v1.1)
-- 실시간 발음 자동 채점 고도화
-- 멀티 디바이스 완전 동기화
-- 커뮤니티/소셜 기능
+## 8. Success Metrics (Internal)
+- 4주 유지율 ≥ 50%
+- 체크인 응답률 ≥ 70%
+- 4주 후 발화 빈도 증가
+- 자기 보고 자신감 상승
 
 ---
 
-## 9. Next Build Notes
+## 9. Out of Scope (Phase 1)
+- 음성 자동 분석
+- 발음 AI 평가
+- 모바일 앱
+- 커뮤니티 기능
+- 다중 목표 동시 운영
+
+---
+
+## 10. Next Build Notes
 - v1.1은 **Lead Generator 중심**에서 **Behavior Loop Engine 중심**으로 전략 전환
 - 다음 단계 개발은 “진단 → 실행 → 체크인 → 조정” 루프를 우선 구현
