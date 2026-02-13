@@ -52,18 +52,21 @@ export function buildPlan(goal: GoalInput, diagnostic: DiagnosticInput): PlanPay
 
 export function buildAdjustment(checkin: CheckinInput, failStreak: number, successStreak: number) {
   if (failStreak >= 3) {
-    return "3회 연속 실패 감지: 다음 주 난이도를 30% 축소하고 과제를 10분→5분 구조로 조정합니다.";
+    return "조정사항: (1) 다음 주 과제량 30% 축소, (2) 10분 태스크를 5분 마이크로 태스크로 분해, (3) 주 5회 대신 주 4회로 시작 후 재확장.";
   }
   if (successStreak >= 2) {
-    return "2주 연속 성공: 다음 주 발화 시간을 +20% 확장하고 실전 과제를 추가합니다.";
+    return "조정사항: (1) 일일 발화 시간 +20%, (2) 주 1회 실전 대화 미션 추가, (3) 녹음 길이 3분 → 5분으로 상향.";
   }
   if (checkin.reason.toLowerCase().includes("time") || checkin.reason.includes("시간")) {
-    return "시간 부족 패턴: 마이크로 루틴(5분)으로 분해하고 에너지 시간대에 고정 배치합니다.";
+    return "조정사항: (1) 매일 고정 5분 슬롯으로 축소, (2) 에너지 높은 시간대 1개로 고정, (3) 녹음 목표 주 5회 → 주 3회로 임시 조정.";
   }
   if (checkin.reason.toLowerCase().includes("confidence") || checkin.reason.includes("자신감")) {
-    return "자신감 부족 패턴: 녹음 난이도를 낮추고 1:1 대화 시뮬레이션을 우선 적용합니다.";
+    return "조정사항: (1) 자유발화 대신 스크립트 기반 발화로 전환, (2) 녹음 길이 3분 → 1분으로 축소, (3) 1:1 대화 시뮬레이션 태스크 주 3회 추가.";
   }
-  return "기본 전략 유지 + 장애 요인 1개 집중 개선으로 다음 주 플랜을 조정합니다.";
+  if (checkin.adjustNeed === "Yes") {
+    return "조정사항: (1) 난이도는 유지, (2) 반복 실패한 과제 1개를 교체, (3) 체크인 전날 리마인더 1회 추가.";
+  }
+  return "조정사항: (1) 기존 플랜 유지, (2) 이번 주 장애요인 1개(시간/자신감/루틴)만 집중 개선, (3) 다음 체크인에서 실행률 재평가.";
 }
 
 export function buildIcs(plan: PlanPayload, goal: GoalInput, diagnostic: DiagnosticInput) {
