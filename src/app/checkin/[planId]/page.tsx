@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { buildAdjustment } from "@/lib/speaking/engine";
 import { CheckinInput } from "@/lib/speaking/types";
 
@@ -11,8 +12,9 @@ const initialCheckin: CheckinInput = {
   adjustNeed: "",
 };
 
-export default function CheckinByPlanPage({ params }: { params: { planId: string } }) {
-  const planId = Number(params.planId || 0);
+export default function CheckinByPlanPage() {
+  const params = useParams<{ planId: string }>();
+  const planId = useMemo(() => Number(params?.planId || 0), [params]);
 
   const [checkin, setCheckin] = useState<CheckinInput>(initialCheckin);
   const [weekNumber, setWeekNumber] = useState("1");
