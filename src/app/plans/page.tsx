@@ -119,12 +119,20 @@ export default function PlansPage() {
                 <p className="font-medium">Plan #{plan.id}</p>
                 <p className="text-sm text-slate-600">{plan.target_type} · {plan.duration} · check-ins: {plan.checkin_count}</p>
                 <p className="mt-1 text-sm text-slate-500">{new Date(plan.created_at).toLocaleString()}</p>
-                <button
-                  onClick={() => onLoadDetail(plan.id)}
-                  className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white"
-                >
-                  View Detail
-                </button>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => onLoadDetail(plan.id)}
+                    className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+                  >
+                    View Detail
+                  </button>
+                  <a
+                    href={`/checkin/${plan.id}`}
+                    className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+                  >
+                    Weekly Check-in
+                  </a>
+                </div>
               </div>
             ))}
             {!loading && plans.length === 0 && <p className="text-slate-500">No plans found.</p>}
