@@ -154,7 +154,7 @@ export default function Home() {
                 4) Track This Plan (Save + Download 4-Week ICS)
               </button>
               <a
-                href={planId ? `/checkin?planId=${planId}` : "/checkin"}
+                href={planId ? `/checkin/${planId}` : "/checkin"}
                 className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white text-center"
               >
                 5) Go to Weekly Check-in Page
