@@ -1,38 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-
-type GoalInput = {
-  level: string;
-  goal: string;
-  duration: string;
-  timePerDay: string;
-  struggle: string;
-};
-
-type DiagnosticInput = {
-  recentSpeakingCount: string;
-  avoidSituation: string;
-  pastFailure: string;
-  energyTime: string;
-  resistanceLevel: string;
-};
-
-type PlanPayload = {
-  profileLabel: string;
-  riskFactors: string[];
-  blockers: string[];
-  weekPlans: string[];
-  dailyActionUnits: string[];
-  successCriteria: string[];
-};
-
-type CheckinInput = {
-  success: "Yes" | "No" | "";
-  reason: string;
-  energy: string;
-  adjustNeed: "Yes" | "No" | "";
-};
+import { buildIcs, buildPlan } from "@/lib/speaking/engine";
+import { DiagnosticInput, GoalInput, PlanPayload } from "@/lib/speaking/types";
 
 const initialGoal: GoalInput = {
   level: "",
@@ -50,115 +20,8 @@ const initialDiagnostic: DiagnosticInput = {
   resistanceLevel: "",
 };
 
-const initialCheckin: CheckinInput = {
-  success: "",
-  reason: "",
-  energy: "",
-  adjustNeed: "",
-};
-
 function track(event: string, payload?: Record<string, unknown>) {
   console.info(`[analytics] ${event}`, payload ?? {});
-}
-
-function buildProfile(goal: GoalInput, diagnostic: DiagnosticInput) {
-  if (diagnostic.resistanceLevel === "High") return "Avoidant Speaker";
-  if (goal.struggle === "Confidence") return "Confidence-Low Active Learner";
-  if (goal.struggle === "Natural flow") return "Pattern-Based Learner";
-  if (diagnostic.recentSpeakingCount === "0-1 times") return "Passive Input-Heavy Learner";
-  return "Goal-Oriented Speaking Builder";
-}
-
-function buildPlan(goal: GoalInput, diagnostic: DiagnosticInput): PlanPayload {
-  const profileLabel = buildProfile(goal, diagnostic);
-
-  const blockers = [goal.struggle, diagnostic.avoidSituation].filter(Boolean);
-
-  const riskFactors = [
-    diagnostic.resistanceLevel === "High" ? "High psychological resistance" : "Moderate psychological resistance",
-    diagnostic.energyTime === "Unclear" ? "No fixed energy window" : `Preferred energy window: ${diagnostic.energyTime}`,
-    diagnostic.pastFailure ? `Past failure pattern: ${diagnostic.pastFailure}` : "No major past failure reported",
-  ];
-
-  const weekPlans = [
-    "Week 1: 10-min shadowing daily + 3 spoken sentences recorded daily + 3 short scenario drills/week.",
-    "Week 2: 5-min free talk daily + 3-min recording 5 times/week + train 3 high-frequency situations.",
-    "Week 3: 5-min open speaking challenge + 1-min native clip imitation + apply real dialogue scripts.",
-    "Week 4: 7-min speaking mission + compare with Week 1 recording + check speed and naturalness.",
-  ];
-
-  if (goal.timePerDay === "5-10 min") {
-    weekPlans[0] = "Week 1: 5-min micro shadowing + 1 sentence recording daily + 2 short drills/week.";
-  }
-
-  if (goal.struggle === "Confidence") {
-    weekPlans[1] =
-      "Week 2: confidence loop — 2-min low-pressure talk + positive replay, 5 times/week.";
-  }
-
-  const dailyActionUnits = [
-    "Minimum speaking time: 5-10 min/day",
-    "Minimum recordings: 5 per week",
-    "Weekly accumulated speaking target: 40-60 min",
-  ];
-
-  const successCriteria = [
-    "Total recordings in 4 weeks ≥ 20",
-    "Speaking time increases week by week",
-    "Frequency of speech blocks decreases (self-report)",
-  ];
-
-  return { profileLabel, riskFactors, blockers, weekPlans, dailyActionUnits, successCriteria };
-}
-
-function buildAdjustment(checkin: CheckinInput, failStreak: number, successStreak: number) {
-  if (failStreak >= 3) {
-    return "3회 연속 실패 감지: 다음 주 난이도를 30% 축소하고 과제를 10분→5분 구조로 조정합니다.";
-  }
-  if (successStreak >= 2) {
-    return "2주 연속 성공: 다음 주 발화 시간을 +20% 확장하고 실전 과제를 추가합니다.";
-  }
-  if (checkin.reason.toLowerCase().includes("time") || checkin.reason.includes("시간")) {
-    return "시간 부족 패턴: 마이크로 루틴(5분)으로 분해하고 에너지 시간대에 고정 배치합니다.";
-  }
-  if (checkin.reason.toLowerCase().includes("confidence") || checkin.reason.includes("자신감")) {
-    return "자신감 부족 패턴: 녹음 난이도를 낮추고 1:1 대화 시뮬레이션을 우선 적용합니다.";
-  }
-  return "기본 전략 유지 + 장애 요인 1개 집중 개선으로 다음 주 플랜을 조정합니다.";
-}
-
-function buildIcs(goal: GoalInput, diagnostic: DiagnosticInput) {
-  const now = new Date();
-  const dtstamp = now.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  const baseHour = diagnostic.energyTime === "Morning" ? 7 : 20;
-  const start = new Date(now);
-  start.setDate(start.getDate() + 1);
-  start.setHours(baseHour, 0, 0, 0);
-  const end = new Date(start);
-  end.setMinutes(end.getMinutes() + (goal.timePerDay === "30+ min" ? 30 : goal.timePerDay === "10-20 min" ? 15 : 10));
-
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-  const events = [
-    {
-      uid: `speak-shadowing-${Date.now()}@leadgen`,
-      title: "[Speak] 10-min Shadowing",
-      desc: "English speaking execution block",
-    },
-    {
-      uid: `speak-freetalk-${Date.now()}@leadgen`,
-      title: "[Speak] 3-min Free Talk",
-      desc: "Low-pressure speaking output block",
-    },
-  ];
-
-  const body = events
-    .map(
-      (e) => `BEGIN:VEVENT\nUID:${e.uid}\nDTSTAMP:${dtstamp}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nRRULE:FREQ=WEEKLY;COUNT=4;BYDAY=MO,TU,WE,TH,FR\nSUMMARY:${e.title}\nDESCRIPTION:${e.desc}\nEND:VEVENT`,
-    )
-    .join("\n");
-
-  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n${body}\nEND:VCALENDAR`;
 }
 
 export default function Home() {
@@ -166,12 +29,6 @@ export default function Home() {
   const [diagnostic, setDiagnostic] = useState<DiagnosticInput>(initialDiagnostic);
   const [plan, setPlan] = useState<PlanPayload | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
-
-  const [email, setEmail] = useState("");
-  const [checkin, setCheckin] = useState<CheckinInput>(initialCheckin);
-  const [failStreak, setFailStreak] = useState(0);
-  const [successStreak, setSuccessStreak] = useState(0);
-  const [adjustmentNote, setAdjustmentNote] = useState("");
 
   const goalComplete = useMemo(() => Object.values(goal).every(Boolean), [goal]);
   const diagnosticComplete = useMemo(() => Object.values(diagnostic).every(Boolean), [diagnostic]);
@@ -185,35 +42,22 @@ export default function Home() {
     await new Promise((r) => setTimeout(r, 600));
     const generated = buildPlan(goal, diagnostic);
     setPlan(generated);
-    setLoadingPlan(false);
+    localStorage.setItem("speaking_plan", JSON.stringify(generated));
     track("plan_generated", { profile: generated.profileLabel });
+    setLoadingPlan(false);
   };
 
   const onDownloadIcs = () => {
-    const ics = buildIcs(goal, diagnostic);
+    if (!plan) return;
+    const ics = buildIcs(plan, goal, diagnostic);
     const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "english-speaking-plan.ics";
+    link.download = "english-speaking-4week-plan.ics";
     link.click();
     URL.revokeObjectURL(url);
-    track("ics_downloaded");
-  };
-
-  const onWeeklyCheckin = (e: FormEvent) => {
-    e.preventDefault();
-    if (!checkin.success || !checkin.reason || !checkin.energy || !checkin.adjustNeed) return;
-
-    const nextFail = checkin.success === "No" ? failStreak + 1 : 0;
-    const nextSuccess = checkin.success === "Yes" ? successStreak + 1 : 0;
-
-    setFailStreak(nextFail);
-    setSuccessStreak(nextSuccess);
-
-    const note = buildAdjustment(checkin, nextFail, nextSuccess);
-    setAdjustmentNote(note);
-    track("weekly_checkin_submitted", { checkin, nextFail, nextSuccess });
+    track("ics_downloaded", { full4WeekPlan: true });
   };
 
   return (
@@ -266,24 +110,6 @@ export default function Home() {
             <h3 className="text-xl font-semibold">Speaking Profile: {plan.profileLabel}</h3>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
-              <p className="font-medium">Main blockers</p>
-              <ul className="mt-2 list-disc pl-5 text-slate-700">
-                {plan.blockers.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-4 rounded-xl bg-amber-50 p-4">
-              <p className="font-medium">Failure risk factors</p>
-              <ul className="mt-2 list-disc pl-5 text-slate-700">
-                {plan.riskFactors.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-4 rounded-xl bg-slate-50 p-4">
               <p className="font-medium">4-Week Roadmap</p>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
                 {plan.weekPlans.map((w) => (
@@ -311,47 +137,14 @@ export default function Home() {
               </div>
             </div>
 
-            <button onClick={onDownloadIcs} className="mt-5 rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
-              4) Track This Plan (Download ICS)
-            </button>
-          </section>
-        )}
-
-        {plan && (
-          <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
-            <h3 className="text-xl font-semibold">5) Weekly Check-in System</h3>
-            <p className="mt-2 text-sm text-slate-600">Weekly check-in email simulation for MVP</p>
-
-            <div className="mt-4">
-              <label className="mb-2 block text-sm font-medium">Email for weekly check-in</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3"
-              />
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <button onClick={onDownloadIcs} className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
+                4) Track This Plan (Download 4-Week ICS)
+              </button>
+              <a href="/checkin" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white text-center">
+                5) Go to Weekly Check-in Page
+              </a>
             </div>
-
-            <form onSubmit={onWeeklyCheckin} className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Select label="1) Goal achieved this week?" value={checkin.success} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, success: v as "Yes" | "No" }))} />
-              <Select label="2) Main reason for failed days" value={checkin.reason} options={["Time shortage", "Low confidence", "Plan too difficult", "No fixed schedule"]} onChange={(v) => setCheckin((p) => ({ ...p, reason: v }))} />
-              <Select label="3) Energy level" value={checkin.energy} options={["High", "Medium", "Low"]} onChange={(v) => setCheckin((p) => ({ ...p, energy: v }))} />
-              <Select label="4) Need difficulty adjustment?" value={checkin.adjustNeed} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, adjustNeed: v as "Yes" | "No" }))} />
-
-              <div className="sm:col-span-2">
-                <button type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white">
-                  6) Submit Weekly Check-in
-                </button>
-              </div>
-            </form>
-
-            {adjustmentNote && (
-              <div className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-                <p className="font-medium">7) Strategy Auto-Adjustment</p>
-                <p className="mt-2 text-slate-700">{adjustmentNote}</p>
-              </div>
-            )}
           </section>
         )}
       </div>
