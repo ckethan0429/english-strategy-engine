@@ -20,15 +20,14 @@ const initialDiagnostic: DiagnosticInput = {
   resistanceLevel: "",
 };
 
-function track(event: string, payload?: Record<string, unknown>) {
-  console.info(`[analytics] ${event}`, payload ?? {});
-}
-
 export default function Home() {
+  const [email, setEmail] = useState("");
   const [goal, setGoal] = useState<GoalInput>(initialGoal);
   const [diagnostic, setDiagnostic] = useState<DiagnosticInput>(initialDiagnostic);
   const [plan, setPlan] = useState<PlanPayload | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
+  const [planId, setPlanId] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState("");
 
   const goalComplete = useMemo(() => Object.values(goal).every(Boolean), [goal]);
   const diagnosticComplete = useMemo(() => Object.values(diagnostic).every(Boolean), [diagnostic]);
@@ -38,26 +37,50 @@ export default function Home() {
     if (!goalComplete || !diagnosticComplete) return;
 
     setLoadingPlan(true);
-    track("plan_generation_started");
-    await new Promise((r) => setTimeout(r, 600));
-    const generated = buildPlan(goal, diagnostic);
-    setPlan(generated);
-    localStorage.setItem("speaking_plan", JSON.stringify(generated));
-    track("plan_generated", { profile: generated.profileLabel });
+    await new Promise((r) => setTimeout(r, 400));
+    setPlan(buildPlan(goal, diagnostic));
+    setPlanId(null);
+    setSaveError("");
     setLoadingPlan(false);
   };
 
-  const onDownloadIcs = () => {
+  const onTrackPlan = async () => {
     if (!plan) return;
+    setSaveError("");
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setSaveError("Valid email is required to track this plan.");
+      return;
+    }
+
+    const res = await fetch("/api/plans", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        goal,
+        diagnostic,
+        plan,
+      }),
+    });
+
+    const data = (await res.json()) as { ok: boolean; error?: string; planId?: number };
+    if (!res.ok || !data.ok || !data.planId) {
+      setSaveError(data.error ?? "Failed to save plan");
+      return;
+    }
+
+    setPlanId(data.planId);
+
     const ics = buildIcs(plan, goal, diagnostic);
     const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "english-speaking-4week-plan.ics";
+    link.download = `english-speaking-4week-plan-${data.planId}.ics`;
     link.click();
     URL.revokeObjectURL(url);
-    track("ics_downloaded", { full4WeekPlan: true });
   };
 
   return (
@@ -68,9 +91,18 @@ export default function Home() {
             Behavior Loop Engine · v1.1
           </p>
           <h1 className="mt-4 text-3xl font-bold md:text-4xl">English Speaking Personal Strategy Engine</h1>
-          <p className="mt-3 text-slate-600">
-            Diagnose → Execute → Check-in → Adjust. Become someone who actually speaks English.
-          </p>
+          <p className="mt-3 text-slate-600">Diagnose → Execute → Check-in → Adjust.</p>
+
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-medium">Email (for tracking & check-ins)</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3"
+            />
+          </div>
         </section>
 
         <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
@@ -108,7 +140,6 @@ export default function Home() {
         {plan && (
           <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
             <h3 className="text-xl font-semibold">Speaking Profile: {plan.profileLabel}</h3>
-
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
               <p className="font-medium">4-Week Roadmap</p>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
@@ -118,33 +149,20 @@ export default function Home() {
               </ul>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-emerald-50 p-4">
-                <p className="font-medium">Daily Action Units</p>
-                <ul className="mt-2 list-disc pl-5 text-slate-700">
-                  {plan.dailyActionUnits.map((a) => (
-                    <li key={a}>{a}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded-xl bg-blue-50 p-4">
-                <p className="font-medium">Success Criteria</p>
-                <ul className="mt-2 list-disc pl-5 text-slate-700">
-                  {plan.successCriteria.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <button onClick={onDownloadIcs} className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
-                4) Track This Plan (Download 4-Week ICS)
+              <button onClick={onTrackPlan} className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
+                4) Track This Plan (Save + Download 4-Week ICS)
               </button>
-              <a href="/checkin" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white text-center">
+              <a
+                href={planId ? `/checkin?planId=${planId}` : "/checkin"}
+                className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white text-center"
+              >
                 5) Go to Weekly Check-in Page
               </a>
             </div>
+
+            {planId && <p className="mt-3 text-sm text-emerald-700">Plan saved. plan_id: {planId}</p>}
+            {saveError && <p className="mt-3 text-sm text-red-600">{saveError}</p>}
           </section>
         )}
       </div>

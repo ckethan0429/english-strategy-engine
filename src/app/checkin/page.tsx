@@ -12,13 +12,18 @@ const initialCheckin: CheckinInput = {
 };
 
 export default function CheckinPage() {
+  const planId = typeof window !== "undefined" ? Number(new URLSearchParams(window.location.search).get("planId") || 0) : 0;
+
   const [checkin, setCheckin] = useState<CheckinInput>(initialCheckin);
+  const [weekNumber, setWeekNumber] = useState("1");
   const [failStreak, setFailStreak] = useState(0);
   const [successStreak, setSuccessStreak] = useState(0);
   const [adjustmentNote, setAdjustmentNote] = useState("");
+  const [saveMsg, setSaveMsg] = useState("");
 
-  const onWeeklyCheckin = (e: FormEvent) => {
+  const onWeeklyCheckin = async (e: FormEvent) => {
     e.preventDefault();
+    setSaveMsg("");
     if (!checkin.success || !checkin.reason || !checkin.energy || !checkin.adjustNeed) return;
 
     const nextFail = checkin.success === "No" ? failStreak + 1 : 0;
@@ -26,7 +31,26 @@ export default function CheckinPage() {
 
     setFailStreak(nextFail);
     setSuccessStreak(nextSuccess);
-    setAdjustmentNote(buildAdjustment(checkin, nextFail, nextSuccess));
+    const note = buildAdjustment(checkin, nextFail, nextSuccess);
+    setAdjustmentNote(note);
+
+    if (planId > 0) {
+      const res = await fetch("/api/checkins", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          weekNumber: Number(weekNumber),
+          checkin,
+          adjustmentNote: note,
+        }),
+      });
+
+      const data = (await res.json()) as { ok: boolean; error?: string };
+      setSaveMsg(res.ok && data.ok ? "Check-in saved to DB." : `Save failed: ${data.error ?? "unknown"}`);
+    } else {
+      setSaveMsg("No planId found. Check-in ran locally only.");
+    }
   };
 
   return (
@@ -35,8 +59,10 @@ export default function CheckinPage() {
         <section className="rounded-3xl bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-bold">Weekly Check-in</h1>
           <p className="mt-2 text-slate-600">Submit your weekly result and get automatic strategy adjustment.</p>
+          <p className="mt-1 text-sm text-slate-500">plan_id: {planId || "not linked"}</p>
 
           <form onSubmit={onWeeklyCheckin} className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Select label="Week number" value={weekNumber} options={["1", "2", "3", "4"]} onChange={setWeekNumber} />
             <Select label="1) Goal achieved this week?" value={checkin.success} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, success: v as "Yes" | "No" }))} />
             <Select label="2) Main reason for failed days" value={checkin.reason} options={["Time shortage", "Low confidence", "Plan too difficult", "No fixed schedule"]} onChange={(v) => setCheckin((p) => ({ ...p, reason: v }))} />
             <Select label="3) Energy level" value={checkin.energy} options={["High", "Medium", "Low"]} onChange={(v) => setCheckin((p) => ({ ...p, energy: v }))} />
@@ -55,6 +81,8 @@ export default function CheckinPage() {
               <p className="mt-2 text-slate-700">{adjustmentNote}</p>
             </div>
           )}
+
+          {saveMsg && <p className="mt-3 text-sm text-slate-700">{saveMsg}</p>}
         </section>
       </div>
     </main>
