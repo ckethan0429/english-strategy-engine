@@ -159,6 +159,9 @@ export default function Home() {
               >
                 5) Go to Weekly Check-in Page
               </a>
+              <a href="/plans" className="rounded-xl bg-white border border-slate-300 px-5 py-3 font-medium text-slate-700 text-center">
+                View Saved Plans
+              </a>
             </div>
 
             {planId && <p className="mt-3 text-sm text-emerald-700">Plan saved. plan_id: {planId}</p>}
