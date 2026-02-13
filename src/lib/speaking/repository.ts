@@ -167,3 +167,27 @@ export async function getPlanById(planId: number) {
     checkins: checkinsRes.rows,
   };
 }
+
+export async function listPlansByEmail(email: string) {
+  await ensureSchema();
+
+  const res = await pool.query(
+    `SELECT
+      p.id,
+      p.created_at,
+      p.strategy_text,
+      g.target_type,
+      g.duration,
+      u.email,
+      u.timezone,
+      (SELECT COUNT(*)::int FROM checkins c WHERE c.plan_id = p.id) AS checkin_count
+    FROM plans p
+    JOIN goals g ON g.id = p.goal_id
+    JOIN users u ON u.id = g.user_id
+    WHERE LOWER(u.email) = LOWER($1)
+    ORDER BY p.created_at DESC`,
+    [email],
+  );
+
+  return res.rows;
+}
