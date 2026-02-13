@@ -2,336 +2,389 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
-type Answers = {
+type GoalInput = {
   level: string;
-  exposure: string;
   goal: string;
-  style: string;
+  duration: string;
+  timePerDay: string;
   struggle: string;
+};
+
+type DiagnosticInput = {
+  recentSpeakingCount: string;
+  avoidSituation: string;
+  pastFailure: string;
+  energyTime: string;
+  resistanceLevel: string;
 };
 
 type PlanPayload = {
   profileLabel: string;
+  riskFactors: string[];
+  blockers: string[];
   weekPlans: string[];
-  toolSuggestions: string[];
-  trackingMethod: string;
-  dailyMinutes: number;
+  dailyActionUnits: string[];
+  successCriteria: string[];
 };
 
-const initialAnswers: Answers = {
+type CheckinInput = {
+  success: "Yes" | "No" | "";
+  reason: string;
+  energy: string;
+  adjustNeed: "Yes" | "No" | "";
+};
+
+const initialGoal: GoalInput = {
   level: "",
-  exposure: "",
   goal: "",
-  style: "",
+  duration: "4 weeks",
+  timePerDay: "",
   struggle: "",
 };
 
-const questions = [
-  {
-    key: "level" as const,
-    label: "Current speaking level",
-    options: [
-      "Beginner (A1-A2)",
-      "Lower-Intermediate (A2-B1)",
-      "Intermediate (B1)",
-      "Upper-Intermediate+ (B2+)",
-    ],
-  },
-  {
-    key: "exposure" as const,
-    label: "Daily English exposure",
-    options: ["0-10 min", "10-30 min", "30-60 min", "60+ min"],
-  },
-  {
-    key: "goal" as const,
-    label: "Primary speaking goal",
-    options: ["Daily conversation", "Job interview", "Presentation / meetings", "Travel"],
-  },
-  {
-    key: "style" as const,
-    label: "Preferred learning style",
-    options: ["Repetition drills", "Shadowing", "Role-play practice", "Sentence pattern building"],
-  },
-  {
-    key: "struggle" as const,
-    label: "Main speaking struggle",
-    options: ["Pronunciation", "Vocabulary recall", "Grammar while speaking", "Confidence / anxiety"],
-  },
-];
+const initialDiagnostic: DiagnosticInput = {
+  recentSpeakingCount: "",
+  avoidSituation: "",
+  pastFailure: "",
+  energyTime: "",
+  resistanceLevel: "",
+};
+
+const initialCheckin: CheckinInput = {
+  success: "",
+  reason: "",
+  energy: "",
+  adjustNeed: "",
+};
 
 function track(event: string, payload?: Record<string, unknown>) {
   console.info(`[analytics] ${event}`, payload ?? {});
 }
 
-function buildRuleBasedPlan(a: Answers): PlanPayload {
-  const lowExposure = a.exposure === "0-10 min";
-  const dailyMinutes =
-    a.exposure === "0-10 min"
-      ? 10
-      : a.exposure === "10-30 min"
-        ? 20
-        : a.exposure === "30-60 min"
-          ? 35
-          : 50;
+function buildProfile(goal: GoalInput, diagnostic: DiagnosticInput) {
+  if (diagnostic.resistanceLevel === "High") return "Avoidant Speaker";
+  if (goal.struggle === "Confidence") return "Confidence-Low Active Learner";
+  if (goal.struggle === "Natural flow") return "Pattern-Based Learner";
+  if (diagnostic.recentSpeakingCount === "0-1 times") return "Passive Input-Heavy Learner";
+  return "Goal-Oriented Speaking Builder";
+}
 
-  const label =
-    a.style === "Sentence pattern building"
-      ? "Pattern-Based Speaking Learner"
-      : a.style === "Shadowing"
-        ? "Shadowing-Focused Fluency Builder"
-        : a.struggle === "Confidence / anxiety"
-          ? "Confidence-First Speaking Learner"
-          : "Goal-Oriented Speaking Learner";
+function buildPlan(goal: GoalInput, diagnostic: DiagnosticInput): PlanPayload {
+  const profileLabel = buildProfile(goal, diagnostic);
 
-  const weekPlans = [
-    "Week 1: Build a daily speaking habit (core phrases + 1 short recording/day).",
-    "Week 2: Improve speed and fluency with response drills and shadowing.",
-    a.goal === "Job interview"
-      ? "Week 3: Job interview answers with STAR structure + mock Q&A."
-      : a.goal === "Presentation / meetings"
-        ? "Week 3: Meeting phrases, transitions, and 1-minute speaking briefs."
-        : "Week 3: Real-life speaking scenarios tied to your goal.",
-    "Week 4: Simulation week (real-world speaking tasks + self-review).",
+  const blockers = [goal.struggle, diagnostic.avoidSituation].filter(Boolean);
+
+  const riskFactors = [
+    diagnostic.resistanceLevel === "High" ? "High psychological resistance" : "Moderate psychological resistance",
+    diagnostic.energyTime === "Unclear" ? "No fixed energy window" : `Preferred energy window: ${diagnostic.energyTime}`,
+    diagnostic.pastFailure ? `Past failure pattern: ${diagnostic.pastFailure}` : "No major past failure reported",
   ];
 
-  if (a.struggle === "Pronunciation") {
-    weekPlans[1] = "Week 2: Pronunciation focus (minimal pairs + shadowing clips).";
+  const weekPlans = [
+    "Week 1: 10-min shadowing daily + 3 spoken sentences recorded daily + 3 short scenario drills/week.",
+    "Week 2: 5-min free talk daily + 3-min recording 5 times/week + train 3 high-frequency situations.",
+    "Week 3: 5-min open speaking challenge + 1-min native clip imitation + apply real dialogue scripts.",
+    "Week 4: 7-min speaking mission + compare with Week 1 recording + check speed and naturalness.",
+  ];
+
+  if (goal.timePerDay === "5-10 min") {
+    weekPlans[0] = "Week 1: 5-min micro shadowing + 1 sentence recording daily + 2 short drills/week.";
   }
 
-  if (a.struggle === "Grammar while speaking") {
-    weekPlans[0] = "Week 1: Sentence pattern drills to reduce grammar hesitation.";
+  if (goal.struggle === "Confidence") {
+    weekPlans[1] =
+      "Week 2: confidence loop — 2-min low-pressure talk + positive replay, 5 times/week.";
   }
 
-  const toolSuggestions =
-    a.struggle === "Pronunciation"
-      ? ["ELSA Speak", "YouGlish", "Rachel's English (YouTube)"]
-      : a.goal === "Job interview"
-        ? ["Google Docs answer bank", "Otter voice replay", "Interview-focused YouTube channels"]
-        : ["YouTube shadowing channels", "ChatGPT role-play prompts", "Voice memo app"];
+  const dailyActionUnits = [
+    "Minimum speaking time: 5-10 min/day",
+    "Minimum recordings: 5 per week",
+    "Weekly accumulated speaking target: 40-60 min",
+  ];
 
-  return {
-    profileLabel: label,
-    weekPlans: lowExposure
-      ? weekPlans.map((w) => `${w} (10-minute micro-routine/day)`)
-      : weekPlans,
-    toolSuggestions,
-    trackingMethod: "Track 10 recordings/week + daily checkbox habit tracker.",
-    dailyMinutes,
-  };
+  const successCriteria = [
+    "Total recordings in 4 weeks ≥ 20",
+    "Speaking time increases week by week",
+    "Frequency of speech blocks decreases (self-report)",
+  ];
+
+  return { profileLabel, riskFactors, blockers, weekPlans, dailyActionUnits, successCriteria };
+}
+
+function buildAdjustment(checkin: CheckinInput, failStreak: number, successStreak: number) {
+  if (failStreak >= 3) {
+    return "3회 연속 실패 감지: 다음 주 난이도를 30% 축소하고 과제를 10분→5분 구조로 조정합니다.";
+  }
+  if (successStreak >= 2) {
+    return "2주 연속 성공: 다음 주 발화 시간을 +20% 확장하고 실전 과제를 추가합니다.";
+  }
+  if (checkin.reason.toLowerCase().includes("time") || checkin.reason.includes("시간")) {
+    return "시간 부족 패턴: 마이크로 루틴(5분)으로 분해하고 에너지 시간대에 고정 배치합니다.";
+  }
+  if (checkin.reason.toLowerCase().includes("confidence") || checkin.reason.includes("자신감")) {
+    return "자신감 부족 패턴: 녹음 난이도를 낮추고 1:1 대화 시뮬레이션을 우선 적용합니다.";
+  }
+  return "기본 전략 유지 + 장애 요인 1개 집중 개선으로 다음 주 플랜을 조정합니다.";
+}
+
+function buildIcs(goal: GoalInput, diagnostic: DiagnosticInput) {
+  const now = new Date();
+  const dtstamp = now.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const baseHour = diagnostic.energyTime === "Morning" ? 7 : 20;
+  const start = new Date(now);
+  start.setDate(start.getDate() + 1);
+  start.setHours(baseHour, 0, 0, 0);
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + (goal.timePerDay === "30+ min" ? 30 : goal.timePerDay === "10-20 min" ? 15 : 10));
+
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  const events = [
+    {
+      uid: `speak-shadowing-${Date.now()}@leadgen`,
+      title: "[Speak] 10-min Shadowing",
+      desc: "English speaking execution block",
+    },
+    {
+      uid: `speak-freetalk-${Date.now()}@leadgen`,
+      title: "[Speak] 3-min Free Talk",
+      desc: "Low-pressure speaking output block",
+    },
+  ];
+
+  const body = events
+    .map(
+      (e) => `BEGIN:VEVENT\nUID:${e.uid}\nDTSTAMP:${dtstamp}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nRRULE:FREQ=WEEKLY;COUNT=4;BYDAY=MO,TU,WE,TH,FR\nSUMMARY:${e.title}\nDESCRIPTION:${e.desc}\nEND:VEVENT`,
+    )
+    .join("\n");
+
+  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n${body}\nEND:VCALENDAR`;
 }
 
 export default function Home() {
-  const [started, setStarted] = useState(false);
-  const [answers, setAnswers] = useState<Answers>(initialAnswers);
-  const [loadingPlan, setLoadingPlan] = useState(false);
-  const [planError, setPlanError] = useState("");
+  const [goal, setGoal] = useState<GoalInput>(initialGoal);
+  const [diagnostic, setDiagnostic] = useState<DiagnosticInput>(initialDiagnostic);
   const [plan, setPlan] = useState<PlanPayload | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
   const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [videoUnlocked, setVideoUnlocked] = useState(false);
+  const [checkin, setCheckin] = useState<CheckinInput>(initialCheckin);
+  const [failStreak, setFailStreak] = useState(0);
+  const [successStreak, setSuccessStreak] = useState(0);
+  const [adjustmentNote, setAdjustmentNote] = useState("");
 
-  const surveyCompleted = useMemo(() => Object.values(answers).every(Boolean), [answers]);
+  const goalComplete = useMemo(() => Object.values(goal).every(Boolean), [goal]);
+  const diagnosticComplete = useMemo(() => Object.values(diagnostic).every(Boolean), [diagnostic]);
 
-  const startSurvey = () => {
-    setStarted(true);
-    track("start_survey");
-  };
-
-  const onSurveySubmit = async (e: FormEvent) => {
+  const onGeneratePlan = async (e: FormEvent) => {
     e.preventDefault();
-    if (!surveyCompleted) return;
+    if (!goalComplete || !diagnosticComplete) return;
 
     setLoadingPlan(true);
-    setPlanError("");
-    track("survey_completed", { answers });
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-
-      // MVP: deterministic rule-based generation
-      // Future: replace with GPT API call and keep this as fallback.
-      const generated = buildRuleBasedPlan(answers);
-      setPlan(generated);
-      track("plan_viewed", { profileLabel: generated.profileLabel });
-    } catch {
-      setPlanError("Plan generation failed. Showing fallback plan.");
-      setPlan(buildRuleBasedPlan(answers));
-    } finally {
-      setLoadingPlan(false);
-    }
-  };
-
-  const onUnlockVideo = (e: FormEvent) => {
-    e.preventDefault();
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setEmailError("Please enter a valid email address.");
-      return;
-    }
-
-    setEmailError("");
-    track("email_submitted");
-    setVideoUnlocked(true);
-    track("video_unlocked");
-  };
-
-  const restart = () => {
-    setStarted(false);
-    setAnswers(initialAnswers);
-    setPlan(null);
-    setPlanError("");
+    track("plan_generation_started");
+    await new Promise((r) => setTimeout(r, 600));
+    const generated = buildPlan(goal, diagnostic);
+    setPlan(generated);
     setLoadingPlan(false);
-    setEmail("");
-    setEmailError("");
-    setVideoUnlocked(false);
-    track("restart_clicked");
+    track("plan_generated", { profile: generated.profileLabel });
+  };
+
+  const onDownloadIcs = () => {
+    const ics = buildIcs(goal, diagnostic);
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "english-speaking-plan.ics";
+    link.click();
+    URL.revokeObjectURL(url);
+    track("ics_downloaded");
+  };
+
+  const onWeeklyCheckin = (e: FormEvent) => {
+    e.preventDefault();
+    if (!checkin.success || !checkin.reason || !checkin.energy || !checkin.adjustNeed) return;
+
+    const nextFail = checkin.success === "No" ? failStreak + 1 : 0;
+    const nextSuccess = checkin.success === "Yes" ? successStreak + 1 : 0;
+
+    setFailStreak(nextFail);
+    setSuccessStreak(nextSuccess);
+
+    const note = buildAdjustment(checkin, nextFail, nextSuccess);
+    setAdjustmentNote(note);
+    track("weekly_checkin_submitted", { checkin, nextFail, nextSuccess });
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <section className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+        <section className="rounded-3xl bg-white p-8 shadow-sm">
           <p className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            4-week personalized speaking plan
+            Behavior Loop Engine · v1.1
           </p>
-          <h1 className="mt-4 text-3xl font-bold md:text-4xl">Speak English with Confidence in 4 Weeks</h1>
-          <p className="mt-3 max-w-2xl text-slate-600">Get your personalized speaking plan now.</p>
-
-          {!started && (
-            <button
-              onClick={startSurvey}
-              className="mt-6 rounded-xl bg-slate-900 px-6 py-3 font-medium text-white transition hover:bg-slate-700"
-            >
-              Start Survey
-            </button>
-          )}
+          <h1 className="mt-4 text-3xl font-bold md:text-4xl">English Speaking Personal Strategy Engine</h1>
+          <p className="mt-3 text-slate-600">
+            Diagnose → Execute → Check-in → Adjust. Become someone who actually speaks English.
+          </p>
         </section>
 
-        {started && (
-          <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold">Quick Survey (2 minutes)</h2>
-            <form onSubmit={onSurveySubmit} className="mt-6 space-y-6">
-              {questions.map((q) => (
-                <fieldset key={q.key}>
-                  <legend className="mb-3 block font-medium">{q.label}</legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {q.options.map((option) => {
-                      const selected = answers[q.key] === option;
-                      return (
-                        <button
-                          type="button"
-                          key={option}
-                          onClick={() => setAnswers((prev) => ({ ...prev, [q.key]: option }))}
-                          className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
-                            selected
-                              ? "border-blue-600 bg-blue-50 text-blue-800"
-                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              ))}
+        <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
+          <h2 className="text-xl font-semibold">1) Goal Input Layer</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Select label="Current speaking level" value={goal.level} options={["A1-A2", "A2-B1", "B1", "B2+"]} onChange={(v) => setGoal((p) => ({ ...p, level: v }))} />
+            <Select label="Primary goal" value={goal.goal} options={["Travel conversation", "Interview", "Presentation", "Daily speaking confidence"]} onChange={(v) => setGoal((p) => ({ ...p, goal: v }))} />
+            <Select label="Duration" value={goal.duration} options={["4 weeks", "6 weeks", "8 weeks"]} onChange={(v) => setGoal((p) => ({ ...p, duration: v }))} />
+            <Select label="Time per day" value={goal.timePerDay} options={["5-10 min", "10-20 min", "30+ min"]} onChange={(v) => setGoal((p) => ({ ...p, timePerDay: v }))} />
+            <Select label="Hardest part" value={goal.struggle} options={["Vocabulary", "Grammar", "Confidence", "Natural flow"]} onChange={(v) => setGoal((p) => ({ ...p, struggle: v }))} />
+          </div>
+        </section>
 
+        <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
+          <h2 className="text-xl font-semibold">2) Diagnostic Interview Layer</h2>
+          <form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={onGeneratePlan}>
+            <Select label="Spoken count in last 2 weeks" value={diagnostic.recentSpeakingCount} options={["0-1 times", "2-4 times", "5-8 times", "9+ times"]} onChange={(v) => setDiagnostic((p) => ({ ...p, recentSpeakingCount: v }))} />
+            <Select label="Avoided situation" value={diagnostic.avoidSituation} options={["Phone call", "Meeting", "Interview", "Small talk"]} onChange={(v) => setDiagnostic((p) => ({ ...p, avoidSituation: v }))} />
+            <Select label="Past failure pattern" value={diagnostic.pastFailure} options={["Stopped after 1 week", "No feedback loop", "Too difficult plan", "No fixed schedule"]} onChange={(v) => setDiagnostic((p) => ({ ...p, pastFailure: v }))} />
+            <Select label="Energy time window" value={diagnostic.energyTime} options={["Morning", "Evening", "Unclear"]} onChange={(v) => setDiagnostic((p) => ({ ...p, energyTime: v }))} />
+            <Select label="Psychological resistance level" value={diagnostic.resistanceLevel} options={["Low", "Medium", "High"]} onChange={(v) => setDiagnostic((p) => ({ ...p, resistanceLevel: v }))} />
+
+            <div className="sm:col-span-2">
               <button
                 type="submit"
-                disabled={!surveyCompleted || loadingPlan}
-                className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!goalComplete || !diagnosticComplete || loadingPlan}
+                className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white disabled:bg-slate-300"
               >
-                {loadingPlan ? "Building your plan..." : "See My Plan"}
+                {loadingPlan ? "Generating strategy..." : "3) Generate 4-Week Strategy"}
               </button>
-            </form>
-          </section>
-        )}
-
-        {loadingPlan && (
-          <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 w-44 rounded bg-slate-200" />
-              <div className="h-4 w-full rounded bg-slate-200" />
-              <div className="h-4 w-11/12 rounded bg-slate-200" />
-              <div className="h-4 w-10/12 rounded bg-slate-200" />
             </div>
-          </section>
-        )}
+          </form>
+        </section>
 
         {plan && (
-          <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <h3 className="text-xl font-semibold">Your Profile: {plan.profileLabel}</h3>
-            <p className="mt-2 text-slate-700">Recommended daily practice: {plan.dailyMinutes} min/day</p>
+          <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
+            <h3 className="text-xl font-semibold">Speaking Profile: {plan.profileLabel}</h3>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
-              <p className="font-medium">4-Week Plan</p>
+              <p className="font-medium">Main blockers</p>
+              <ul className="mt-2 list-disc pl-5 text-slate-700">
+                {plan.blockers.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-amber-50 p-4">
+              <p className="font-medium">Failure risk factors</p>
+              <ul className="mt-2 list-disc pl-5 text-slate-700">
+                {plan.riskFactors.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="font-medium">4-Week Roadmap</p>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
-                {plan.weekPlans.map((week) => (
-                  <li key={week}>{week}</li>
+                {plan.weekPlans.map((w) => (
+                  <li key={w}>{w}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="mt-4 rounded-xl bg-emerald-50 p-4">
-              <p className="font-medium">Tool Suggestions</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
-                {plan.toolSuggestions.map((tool) => (
-                  <li key={tool}>{tool}</li>
-                ))}
-              </ul>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <p className="font-medium">Daily Action Units</p>
+                <ul className="mt-2 list-disc pl-5 text-slate-700">
+                  {plan.dailyActionUnits.map((a) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-xl bg-blue-50 p-4">
+                <p className="font-medium">Success Criteria</p>
+                <ul className="mt-2 list-disc pl-5 text-slate-700">
+                  {plan.successCriteria.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
-            <p className="mt-4 text-slate-700">Progress tracking: {plan.trackingMethod}</p>
-
-            {planError && <p className="mt-3 text-sm text-amber-700">{planError}</p>}
+            <button onClick={onDownloadIcs} className="mt-5 rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
+              4) Track This Plan (Download ICS)
+            </button>
           </section>
         )}
 
         {plan && (
-          <section className="mt-6 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <h3 className="text-xl font-semibold">How 3 People Became Fluent in 90 Days</h3>
-            <p className="mt-2 text-sm text-slate-600">Enter your email to unlock the video.</p>
+          <section className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
+            <h3 className="text-xl font-semibold">5) Weekly Check-in System</h3>
+            <p className="mt-2 text-sm text-slate-600">Weekly check-in email simulation for MVP</p>
 
-            <form onSubmit={onUnlockVideo} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-4">
+              <label className="mb-2 block text-sm font-medium">Email for weekly check-in</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3"
                 placeholder="you@example.com"
-                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-3"
               />
-              <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-700">
-                Unlock Video
-              </button>
+            </div>
+
+            <form onSubmit={onWeeklyCheckin} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Select label="1) Goal achieved this week?" value={checkin.success} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, success: v as "Yes" | "No" }))} />
+              <Select label="2) Main reason for failed days" value={checkin.reason} options={["Time shortage", "Low confidence", "Plan too difficult", "No fixed schedule"]} onChange={(v) => setCheckin((p) => ({ ...p, reason: v }))} />
+              <Select label="3) Energy level" value={checkin.energy} options={["High", "Medium", "Low"]} onChange={(v) => setCheckin((p) => ({ ...p, energy: v }))} />
+              <Select label="4) Need difficulty adjustment?" value={checkin.adjustNeed} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, adjustNeed: v as "Yes" | "No" }))} />
+
+              <div className="sm:col-span-2">
+                <button type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white">
+                  6) Submit Weekly Check-in
+                </button>
+              </div>
             </form>
 
-            <p className="mt-2 text-xs text-slate-500">We may send practical speaking tips. Unsubscribe anytime.</p>
-            {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
-
-            {videoUnlocked && (
-              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-                <iframe
-                  className="aspect-video w-full"
-                  src="https://www.youtube.com/embed/aqz-KE-bpKQ"
-                  title="How 3 People Became Fluent in 90 Days"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
+            {adjustmentNote && (
+              <div className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <p className="font-medium">7) Strategy Auto-Adjustment</p>
+                <p className="mt-2 text-slate-700">{adjustmentNote}</p>
               </div>
             )}
           </section>
         )}
-
-        {started && (
-          <footer className="mt-6 pb-8">
-            <button onClick={restart} className="text-sm text-slate-500 underline hover:text-slate-700">
-              Restart with a different goal
-            </button>
-          </footer>
-        )}
       </div>
     </main>
+  );
+}
+
+function Select({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block font-medium text-slate-800">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+      >
+        <option value="">Select one</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
