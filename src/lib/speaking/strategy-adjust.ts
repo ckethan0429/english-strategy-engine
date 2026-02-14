@@ -18,6 +18,16 @@ function fallbackAdjustment(params: AdjustParams) {
     base.push("- Prioritize one must-do speaking task per day.");
   }
 
+  if (params.checkin.executionRate) {
+    base.push(`- Last week execution rate: ${params.checkin.executionRate}% (reflecting in load tuning).`);
+  }
+  if (params.checkin.missedDays) {
+    base.push(`- Missed days: ${params.checkin.missedDays}/7 (tighten recovery routine).`);
+  }
+  if (params.checkin.difficultTask) {
+    base.push(`- Most difficult task: ${params.checkin.difficultTask} (add scaffolded practice).`);
+  }
+
   if (params.checkin.reason.toLowerCase().includes("time")) {
     base.push("- Lock one fixed time slot (same hour daily) to reduce scheduling failure.");
     base.push("- Recording target temporarily adjusted to 3-4 times/week.");
@@ -45,7 +55,7 @@ export async function generateAdjustedStrategy(params: AdjustParams) {
     return fallbackAdjustment(params);
   }
 
-  const prompt = `You are an English speaking strategy coach.\nGiven the current week strategy and check-in result, generate a stronger next-week adjusted strategy.\nMust output concrete and measurable bullet points.\n\nCurrent week plan:\n${params.currentWeekPlan}\n\nCheck-in:\n- success: ${params.checkin.success}\n- reason: ${params.checkin.reason}\n- energy: ${params.checkin.energy}\n- adjustNeed: ${params.checkin.adjustNeed}\n\nRisk factors:\n${(params.riskFactors ?? []).join("; ")}\n\nRequirements:\n1) Reflect current strategy + reported difficulty.\n2) Produce next 7-day actionable plan.\n3) Include measurable targets (time/frequency).\n4) Keep output concise in Korean.`;
+  const prompt = `You are an English speaking strategy coach.\nGiven the current week strategy and check-in result, generate a stronger next-week adjusted strategy.\nMust output concrete and measurable bullet points.\n\nCurrent week plan:\n${params.currentWeekPlan}\n\nCheck-in:\n- success: ${params.checkin.success}\n- reason: ${params.checkin.reason}\n- energy: ${params.checkin.energy}\n- adjustNeed: ${params.checkin.adjustNeed}\n- executionRate: ${params.checkin.executionRate ?? ""}\n- missedDays: ${params.checkin.missedDays ?? ""}\n- blockerTags: ${(params.checkin.blockerTags ?? []).join(", ")}\n- difficultTask: ${params.checkin.difficultTask ?? ""}\n- difficultyLevel: ${params.checkin.difficultyLevel ?? ""}\n- anxietyLevel: ${params.checkin.anxietyLevel ?? ""}\n- avoidanceLevel: ${params.checkin.avoidanceLevel ?? ""}\n- scheduleFit: ${params.checkin.scheduleFit ?? ""}\n- nextWeekPreference: ${params.checkin.nextWeekPreference ?? ""}\n\nRisk factors:\n${(params.riskFactors ?? []).join("; ")}\n\nRequirements:\n1) Reflect current strategy + reported difficulty.\n2) Produce next 7-day actionable plan.\n3) Include measurable targets (time/frequency).\n4) When user reported no problem, keep maintenance mode with one progressive challenge.\n5) Keep output concise in Korean.`;
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {

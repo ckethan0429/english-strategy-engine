@@ -10,6 +10,15 @@ const initialCheckin: CheckinInput = {
   reason: "",
   energy: "",
   adjustNeed: "",
+  executionRate: "",
+  missedDays: "",
+  blockerTags: [],
+  difficultTask: "",
+  difficultyLevel: "",
+  anxietyLevel: "",
+  avoidanceLevel: "",
+  scheduleFit: "",
+  nextWeekPreference: "",
 };
 
 type PlanApi = {
@@ -101,6 +110,16 @@ export default function CheckinByPlanPage() {
     link.download = `english-speaking-week-${weekNumber}-plan-${planId}.ics`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const toggleBlockerTag = (tag: string) => {
+    setCheckin((prev) => {
+      const curr = prev.blockerTags ?? [];
+      return {
+        ...prev,
+        blockerTags: curr.includes(tag) ? curr.filter((t) => t !== tag) : [...curr, tag],
+      };
+    });
   };
 
   const onWeeklyCheckin = async (e: FormEvent) => {
@@ -213,6 +232,75 @@ export default function CheckinByPlanPage() {
               onChange={(v) => setCheckin((p) => ({ ...p, adjustNeed: v as "Yes" | "No" }))}
               disabled={!hasProblemLastWeek}
             />
+
+            <Select
+              label="5) Execution rate (%)"
+              value={checkin.executionRate ?? ""}
+              options={["0", "25", "50", "75", "100"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, executionRate: v as CheckinInput["executionRate"] }))}
+            />
+            <Select
+              label="6) Missed days"
+              value={checkin.missedDays ?? ""}
+              options={["0", "1", "2", "3", "4", "5", "6", "7"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, missedDays: v as CheckinInput["missedDays"] }))}
+            />
+            <Select
+              label="7) Most difficult task"
+              value={checkin.difficultTask ?? ""}
+              options={["Shadowing", "Free Talk", "Recording", "Situation Drill"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, difficultTask: v as CheckinInput["difficultTask"] }))}
+              disabled={!hasProblemLastWeek}
+            />
+            <Select
+              label="8) Task difficulty (1-5)"
+              value={checkin.difficultyLevel ?? ""}
+              options={["1", "2", "3", "4", "5"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, difficultyLevel: v as CheckinInput["difficultyLevel"] }))}
+            />
+            <Select
+              label="9) Anxiety level (1-5)"
+              value={checkin.anxietyLevel ?? ""}
+              options={["1", "2", "3", "4", "5"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, anxietyLevel: v as CheckinInput["anxietyLevel"] }))}
+            />
+            <Select
+              label="10) Avoidance level (1-5)"
+              value={checkin.avoidanceLevel ?? ""}
+              options={["1", "2", "3", "4", "5"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, avoidanceLevel: v as CheckinInput["avoidanceLevel"] }))}
+            />
+            <Select
+              label="11) Planned time-slot fit"
+              value={checkin.scheduleFit ?? ""}
+              options={["High", "Medium", "Low"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, scheduleFit: v as CheckinInput["scheduleFit"] }))}
+            />
+            <Select
+              label="12) Preferred next-week adjustment"
+              value={checkin.nextWeekPreference ?? ""}
+              options={["Reduce time", "Reduce frequency", "Reduce difficulty", "Change task type", "Keep"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, nextWeekPreference: v as CheckinInput["nextWeekPreference"] }))}
+            />
+
+            <div className="sm:col-span-2">
+              <p className="mb-2 text-sm font-medium text-slate-800">13) Repeated blocker tags (multi-select)</p>
+              <div className="flex flex-wrap gap-2">
+                {["Time", "Fatigue", "Confidence", "Difficulty", "Environment", "Priority"].map((tag) => {
+                  const selected = (checkin.blockerTags ?? []).includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleBlockerTag(tag)}
+                      className={`rounded-full px-3 py-1 text-sm ${selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"}`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="sm:col-span-2">
               <button disabled={adjusting} type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white disabled:bg-slate-300">

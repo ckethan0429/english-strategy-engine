@@ -35,9 +35,13 @@ export async function ensureSchema() {
       reason TEXT NOT NULL,
       energy TEXT NOT NULL,
       adjust_need TEXT NOT NULL,
+      detail_json JSONB NOT NULL DEFAULT '{}'::jsonb,
       adjustment_note TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    ALTER TABLE checkins
+      ADD COLUMN IF NOT EXISTS detail_json JSONB NOT NULL DEFAULT '{}'::jsonb;
   `);
 }
 
@@ -115,8 +119,8 @@ export async function createCheckinRecord(input: {
 }) {
   await ensureSchema();
   await pool.query(
-    `INSERT INTO checkins (plan_id, week_number, status, reason, energy, adjust_need, adjustment_note)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    `INSERT INTO checkins (plan_id, week_number, status, reason, energy, adjust_need, detail_json, adjustment_note)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
     [
       input.planId,
       input.weekNumber,
@@ -124,6 +128,17 @@ export async function createCheckinRecord(input: {
       input.checkin.reason,
       input.checkin.energy,
       input.checkin.adjustNeed,
+      JSON.stringify({
+        executionRate: input.checkin.executionRate ?? "",
+        missedDays: input.checkin.missedDays ?? "",
+        blockerTags: input.checkin.blockerTags ?? [],
+        difficultTask: input.checkin.difficultTask ?? "",
+        difficultyLevel: input.checkin.difficultyLevel ?? "",
+        anxietyLevel: input.checkin.anxietyLevel ?? "",
+        avoidanceLevel: input.checkin.avoidanceLevel ?? "",
+        scheduleFit: input.checkin.scheduleFit ?? "",
+        nextWeekPreference: input.checkin.nextWeekPreference ?? "",
+      }),
       input.adjustmentNote,
     ],
   );
@@ -155,7 +170,7 @@ export async function getPlanById(planId: number) {
   if (planRes.rowCount === 0) return null;
 
   const checkinsRes = await pool.query(
-    `SELECT id, week_number, status, reason, energy, adjust_need, adjustment_note, created_at
+    `SELECT id, week_number, status, reason, energy, adjust_need, detail_json, adjustment_note, created_at
      FROM checkins
      WHERE plan_id = $1
      ORDER BY week_number ASC, created_at ASC`,
