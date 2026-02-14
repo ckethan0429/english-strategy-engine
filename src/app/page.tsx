@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { buildIcs, buildPlan } from "@/lib/speaking/engine";
+import { buildPlan } from "@/lib/speaking/engine";
 import { DiagnosticInput, GoalInput, PlanPayload } from "@/lib/speaking/types";
 
 const initialGoal: GoalInput = {
@@ -72,15 +72,6 @@ export default function Home() {
     }
 
     setPlanId(data.planId);
-
-    const ics = buildIcs(plan, goal, diagnostic);
-    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `english-speaking-4week-plan-${data.planId}.ics`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -151,7 +142,7 @@ export default function Home() {
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <button onClick={onTrackPlan} className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white">
-                4) Track This Plan (Save + Download 4-Week ICS)
+                4) Track This Plan (Save)
               </button>
               <a
                 href={planId ? `/checkin/${planId}` : "/checkin"}

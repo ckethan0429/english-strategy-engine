@@ -69,36 +69,46 @@ export function buildAdjustment(checkin: CheckinInput, failStreak: number, succe
   return "조정사항: (1) 기존 플랜 유지, (2) 이번 주 장애요인 1개(시간/자신감/루틴)만 집중 개선, (3) 다음 체크인에서 실행률 재평가.";
 }
 
-export function buildIcs(plan: PlanPayload, goal: GoalInput, diagnostic: DiagnosticInput) {
+function fmtUtc(d: Date) {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+function durationMinutes(goal: GoalInput) {
+  return goal.timePerDay === "30+ min" ? 30 : goal.timePerDay === "10-20 min" ? 15 : 10;
+}
+
+export function buildWeekIcs(
+  plan: PlanPayload,
+  goal: GoalInput,
+  diagnostic: DiagnosticInput,
+  weekNumber: number,
+) {
   const now = new Date();
-  const dtstamp = now.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const dtstamp = fmtUtc(now);
   const baseHour = diagnostic.energyTime === "Morning" ? 7 : 20;
 
-  const firstDay = new Date(now);
-  firstDay.setDate(firstDay.getDate() + 1);
-  firstDay.setHours(baseHour, 0, 0, 0);
+  const start = new Date(now);
+  start.setDate(start.getDate() + 1 + (weekNumber - 1) * 7);
+  start.setHours(baseHour, 0, 0, 0);
 
-  const durationMin = goal.timePerDay === "30+ min" ? 30 : goal.timePerDay === "10-20 min" ? 15 : 10;
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + durationMinutes(goal));
 
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const title = `[Speak] Week${weekNumber} Focus Session`;
+  const desc = plan.weekPlans[weekNumber - 1] ?? "Weekly speaking block";
 
-  const weekTitles = [
-    "[Speak] Week1 Shadowing + Recording",
-    "[Speak] Week2 Free Talk + Recording",
-    "[Speak] Week3 Open Speaking + Imitation",
-    "[Speak] Week4 Mission + Comparison Review",
-  ];
+  const event = `BEGIN:VEVENT\nUID:speak-week-${weekNumber}-${Date.now()}@leadgen\nDTSTAMP:${dtstamp}\nDTSTART:${fmtUtc(start)}\nDTEND:${fmtUtc(end)}\nRRULE:FREQ=DAILY;COUNT=5\nSUMMARY:${title}\nDESCRIPTION:${desc}\nEND:VEVENT`;
 
-  const events = weekTitles.map((title, idx) => {
-    const start = new Date(firstDay);
-    start.setDate(firstDay.getDate() + idx * 7);
-    const end = new Date(start);
-    end.setMinutes(end.getMinutes() + durationMin);
+  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n${event}\nEND:VCALENDAR`;
+}
 
-    const weekDesc = plan.weekPlans[idx] ?? "Weekly speaking block";
-
-    return `BEGIN:VEVENT\nUID:speak-week-${idx + 1}-${Date.now()}@leadgen\nDTSTAMP:${dtstamp}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nRRULE:FREQ=DAILY;COUNT=5\nSUMMARY:${title}\nDESCRIPTION:${weekDesc}\nEND:VEVENT`;
+export function buildIcs(plan: PlanPayload, goal: GoalInput, diagnostic: DiagnosticInput) {
+  const weeks = [1, 2, 3, 4].map((w) => {
+    const text = buildWeekIcs(plan, goal, diagnostic, w);
+    return text
+      .replace("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n", "")
+      .replace("\nEND:VCALENDAR", "");
   });
 
-  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n${events.join("\n")}\nEND:VCALENDAR`;
+  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//English Strategy Engine//EN\nCALSCALE:GREGORIAN\n${weeks.join("\n")}\nEND:VCALENDAR`;
 }
