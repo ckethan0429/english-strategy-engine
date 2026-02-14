@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { buildAdjustment, buildWeekIcs } from "@/lib/speaking/engine";
+import { buildWeekIcs } from "@/lib/speaking/engine";
 import { CheckinInput, DiagnosticInput, GoalInput, PlanPayload } from "@/lib/speaking/types";
 
 const initialCheckin: CheckinInput = {
@@ -47,6 +47,7 @@ export default function CheckinByPlanPage() {
   const [successStreak, setSuccessStreak] = useState(0);
   const [adjustmentNote, setAdjustmentNote] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
 
   const [planData, setPlanData] = useState<PlanPayload | null>(null);
   const [goalData, setGoalData] = useState<GoalInput | null>(null);
@@ -112,10 +113,23 @@ export default function CheckinByPlanPage() {
 
     setFailStreak(nextFail);
     setSuccessStreak(nextSuccess);
-    const note = buildAdjustment(checkin, nextFail, nextSuccess);
-    setAdjustmentNote(note);
 
     if (planId > 0) {
+      setAdjusting(true);
+
+      const adjRes = await fetch("/api/strategy-adjust", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          weekNumber: Number(weekNumber),
+          checkin,
+        }),
+      });
+      const adjData = (await adjRes.json()) as { ok: boolean; adjustment?: string; error?: string };
+      const note = adjRes.ok && adjData.ok && adjData.adjustment ? adjData.adjustment : "조정 전략 생성 실패";
+      setAdjustmentNote(note);
+
       const res = await fetch("/api/checkins", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -129,6 +143,7 @@ export default function CheckinByPlanPage() {
 
       const data = (await res.json()) as { ok: boolean; error?: string };
       setSaveMsg(res.ok && data.ok ? "Check-in saved to DB." : `Save failed: ${data.error ?? "unknown"}`);
+      setAdjusting(false);
     } else {
       setSaveMsg("Invalid planId.");
     }
@@ -200,8 +215,8 @@ export default function CheckinByPlanPage() {
             />
 
             <div className="sm:col-span-2">
-              <button type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white">
-                Submit Weekly Start Check-in
+              <button disabled={adjusting} type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white disabled:bg-slate-300">
+                {adjusting ? "Generating adjusted strategy..." : "Submit Weekly Start Check-in"}
               </button>
             </div>
           </form>
