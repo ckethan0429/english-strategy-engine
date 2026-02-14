@@ -52,6 +52,8 @@ export default function CheckinByPlanPage() {
   const [goalData, setGoalData] = useState<GoalInput | null>(null);
   const [diagData, setDiagData] = useState<DiagnosticInput | null>(null);
 
+  const hasProblemLastWeek = checkin.success === "No";
+
   useEffect(() => {
     async function loadPlan() {
       if (!planId) return;
@@ -163,10 +165,39 @@ export default function CheckinByPlanPage() {
           </div>
 
           <form onSubmit={onWeeklyCheckin} className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Select label="1) Last week plan completed?" value={checkin.success} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, success: v as "Yes" | "No" }))} />
-            <Select label="2) Main blocker last week" value={checkin.reason} options={["Time shortage", "Low confidence", "Plan too difficult", "No fixed schedule"]} onChange={(v) => setCheckin((p) => ({ ...p, reason: v }))} />
+            {!hasProblemLastWeek && checkin.success === "Yes" && (
+              <p className="sm:col-span-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+                문제 없음으로 답변되어, 문제 원인/난이도 조정 질문은 자동으로 비활성화되었습니다.
+              </p>
+            )}
+            <Select
+              label="1) Last week plan completed?"
+              value={checkin.success}
+              options={["Yes", "No"]}
+              onChange={(v) =>
+                setCheckin((p) => ({
+                  ...p,
+                  success: v as "Yes" | "No",
+                  reason: v === "Yes" ? "No major issue" : p.reason === "No major issue" ? "" : p.reason,
+                  adjustNeed: v === "Yes" ? "No" : p.adjustNeed,
+                }))
+              }
+            />
+            <Select
+              label="2) Main blocker last week"
+              value={checkin.reason}
+              options={["Time shortage", "Low confidence", "Plan too difficult", "No fixed schedule"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, reason: v }))}
+              disabled={!hasProblemLastWeek}
+            />
             <Select label="3) Current energy level" value={checkin.energy} options={["High", "Medium", "Low"]} onChange={(v) => setCheckin((p) => ({ ...p, energy: v }))} />
-            <Select label="4) Need difficulty adjustment this week?" value={checkin.adjustNeed} options={["Yes", "No"]} onChange={(v) => setCheckin((p) => ({ ...p, adjustNeed: v as "Yes" | "No" }))} />
+            <Select
+              label="4) Need difficulty adjustment this week?"
+              value={checkin.adjustNeed}
+              options={["Yes", "No"]}
+              onChange={(v) => setCheckin((p) => ({ ...p, adjustNeed: v as "Yes" | "No" }))}
+              disabled={!hasProblemLastWeek}
+            />
 
             <div className="sm:col-span-2">
               <button type="submit" className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white">
@@ -194,11 +225,13 @@ function Select({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -206,7 +239,8 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 disabled:bg-slate-100 disabled:text-slate-400"
       >
         <option value="">Select one</option>
         {options.map((o) => (
